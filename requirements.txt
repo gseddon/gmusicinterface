@@ -1,3 +1,2 @@
-configparser
 python-vlc
 gmusicapi
