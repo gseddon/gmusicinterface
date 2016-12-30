@@ -1,3 +1,6 @@
+import os
+from time import sleep
+
 from gmusicapi import Mobileclient
 import configparser
 import vlc
@@ -10,21 +13,29 @@ if __name__ == "__main__":
     config.read("account.ini")
     account = config["Account"]
     api = Mobileclient()
-    print("initialised", account["username"], account["password"])
+    print("initialised")
     api.login(account["username"], account["password"], Mobileclient.FROM_MAC_ADDRESS)
     print("logged in")
     library = api.get_all_songs()
-    sweet_track_ids = [track for track in library if track['artist'] == 'Flume']
+    artist = 'Flume'
+    tracks = [track for track in library if track['artist'] == artist]
 
-    id = sweet_track_ids[0]["id"]
 
-    url = api.get_stream_url(id)
-    print(sweet_track_ids[0]["artist"] + "\n" + url)
-    instance = vlc.Instance("--sout=#duplicate{dst=file{dst=example.mpg},dst=display}")
-    media = instance.media_new(url)
-    player = instance.media_player_new()
-    player.set_media(media)
-    player.play()
+    if not os.path.exists(artist):
+        os.makedirs(artist)
+    for album in [track['album'] for track in tracks]:
+        albumpath = os.path.join(artist, album)
+        if not os.path.exists(albumpath):
+            os.makedirs(albumpath)
+    for track in tracks:
+        track_url = api.get_stream_url(track['id'])
+        trackpath = os.path.join(track['artist'], track['album'], track['title'])
+        print(trackpath)
+        # instance = vlc.Instance("--sout=file/ps:\"\'" + trackpath + ".mp3\'\"")
+        # player = instance.media_player_new(track_url)
+        # player.play()
+
+
 
     # self.p = vlc.MediaPlayer(url)
     # self.p.play()
