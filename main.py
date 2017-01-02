@@ -25,7 +25,9 @@ class GMusicDownloader:
         print("logged in")
         library = self.api.get_all_songs()
         tracks = [track for track in library if track['artist'] == "Flume"]
-        self.stream_download(tracks[4])
+        for i in range(0,10):
+            self.stream_download(tracks[i])
+        print("downloads complete")
 
     def get_directory_path(self, track):
         artist = track["artist"]
