@@ -1,2 +1,3 @@
 python-vlc
 gmusicapi
+requests

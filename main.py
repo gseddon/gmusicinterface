@@ -6,30 +6,66 @@ import configparser
 import requests
 import vlc
 
-chunk_size = 4096
 is_stream = True
 
-def create_dir(track):
-    artist = track["artist"]
-    album = track["album"]
-    albumpath = os.path.join(artist, album)
-    if not os.path.exists(albumpath):
-        os.makedirs(albumpath)
-    return albumpath
+class GMusicDownloader:
+    api = None
+    chunk_size = None
+    file_type = None
+    music_directory = None
 
-def stream_download(track):
-    track_url = api.get_stream_url(track['id'])
-    track_title = track["title"]
-    response = requests.get(track_url, stream=True)
-    print("downloading " + track_title, end="")
-    total_length = int(response.headers.get('content-length'))
-    dl = 0
-    with open(os.path.join(create_dir(track), track_title + ".mp3"), "wb") as songfile:
-        for chunk in response.iter_content(chunk_size=chunk_size):
-            songfile.write(chunk)
-            dl += len(chunk)
-            print(".", end="")
-    print(" done.")
+    def __init__(self):
+        config = configparser.ConfigParser()
+        config.read("config.ini")
+        account = config["Account"]
+        self.load_settings(config["Settings"])
+        self.api = Mobileclient()
+        print("GMusicDownloader initialised")
+        self.api.login(account["username"], account["password"], Mobileclient.FROM_MAC_ADDRESS)
+        print("logged in")
+        library = self.api.get_all_songs()
+        tracks = [track for track in library if track['artist'] == "Flume"]
+        self.stream_download(tracks[4])
+
+    def get_directory_path(self, track):
+        artist = track["artist"]
+        album = track["album"]
+        artist_path = os.path.join(self.music_directory, artist)
+        album_path = os.path.join(artist_path, album)
+        if not os.path.exists(artist_path):
+            os.makedirs(artist_path)
+        if not os.path.exists(album_path):
+            os.makedirs(album_path)
+        return album_path
+
+    def stream_download(self, track):
+        track_title = track["title"]
+
+        directory_path = self.get_directory_path(track)
+        file_path = os.path.join(directory_path, track_title + self.file_type)
+
+        if not os.path.exists(file_path):
+            dl = 0
+            slowdown = 0
+            print("downloading " + track_title, end="")
+            track_url = self.api.get_stream_url(track['id'])
+            response = requests.get(track_url, stream=True)
+            total_length = int(response.headers.get('content-length'))
+            with open(file_path, "wb") as songfile:
+                for chunk in response.iter_content(chunk_size=self.chunk_size):
+                    songfile.write(chunk)
+                    dl += len(chunk)
+                    slowdown += 1
+                    if slowdown%20 == 0:
+                        print(".", end="")
+            print(" done.")
+        else:
+            print(track_title + " already exists, skipping")
+
+    def load_settings(self, settingsDict):
+        self.chunk_size = settingsDict.getint("chunk_size")
+        self.file_type = "." + settingsDict["file_type"]
+        self.music_directory = settingsDict["music_directory"]
 
 
 
@@ -37,16 +73,4 @@ def stream_download(track):
 
 
 if __name__ == "__main__":
-    config = configparser.ConfigParser()
-    config.read("account.ini")
-    account = config["Account"]
-    api = Mobileclient()
-    print("initialised")
-    api.login(account["username"], account["password"], Mobileclient.FROM_MAC_ADDRESS)
-    print("logged in")
-    library = api.get_all_songs()
-    artist = 'Flume'
-    tracks = [track for track in library if track['artist'] == artist]
-
-    # track_url = api.get_stream_url(tracks[0]['id'])
-    stream_download(tracks[0])
+    GMusicDownloader()
