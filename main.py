@@ -15,19 +15,20 @@ class GMusicDownloader:
     music_directory = None
 
     def __init__(self):
-        config = configparser.ConfigParser()
-        config.read("config.ini")
-        account = config["Account"]
-        self.load_settings(config["Settings"])
-        self.api = Mobileclient()
-        print("GMusicDownloader initialised")
-        self.api.login(account["username"], account["password"], Mobileclient.FROM_MAC_ADDRESS)
-        print("logged in")
-        library = self.api.get_all_songs()
-        tracks = [track for track in library if track['artist'] == "Flume"]
-        for i in range(0,10):
-            self.stream_download(tracks[i])
-        print("downloads complete")
+        self.gui()
+        # config = configparser.ConfigParser()
+        # config.read("config.ini")
+        # account = config["Account"]
+        # self.load_settings(config["Settings"])
+        # self.api = Mobileclient()
+        # print("GMusicDownloader initialised")
+        # self.api.login(account["username"], account["password"], Mobileclient.FROM_MAC_ADDRESS)
+        # print("logged in")
+        # library = self.api.get_all_songs()
+        # tracks = [track for track in library if track['artist'] == "Flume"]
+        # for i in range(0,10):
+        #     self.stream_download(tracks[i])
+        # print("downloads complete")
 
     def get_directory_path(self, track):
         artist = track["artist"]
@@ -69,6 +70,10 @@ class GMusicDownloader:
         self.file_type = "." + settingsDict["file_type"]
         self.music_directory = settingsDict["music_directory"]
 
+    def gui(self):
+        import tkinter
+        top = tkinter.Tk()
+        top.mainloop()
 
 
 
