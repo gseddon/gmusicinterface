@@ -92,7 +92,11 @@
     </child>
     <child>
       <object class="ttk.Entry" id="search_entry">
+        <property name="font">TkDefaultFont</property>
         <property name="takefocus">true</property>
+        <property name="validate">key</property>
+        <property name="validatecommand">search_entry_changed</property>
+        <property name="validatecommand_args">%d %P</property>
         <layout>
           <property name="column">0</property>
           <property name="columnspan">4</property>
@@ -121,7 +125,7 @@
             <property name="minwidth">20</property>
             <property name="stretch">true</property>
             <property name="text" translatable="yes">Title</property>
-            <property name="tree_column">True</property>
+            <property name="tree_column">false</property>
             <property name="visible">true</property>
             <property name="width">200</property>
           </object>
@@ -135,6 +139,7 @@
             <property name="text" translatable="yes">Artist</property>
             <property name="tree_column">false</property>
             <property name="visible">true</property>
+            <property name="width">200</property>
           </object>
         </child>
         <child>
@@ -146,6 +151,7 @@
             <property name="text" translatable="yes">Album</property>
             <property name="tree_column">false</property>
             <property name="visible">true</property>
+            <property name="width">200</property>
           </object>
         </child>
         <child>
@@ -157,7 +163,7 @@
             <property name="text" translatable="yes">Saved</property>
             <property name="tree_column">false</property>
             <property name="visible">true</property>
-            <property name="width">40</property>
+            <property name="width">200</property>
           </object>
         </child>
       </object>

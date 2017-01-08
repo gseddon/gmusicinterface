@@ -22,6 +22,7 @@ class GMusicDownloader:
         self.load_settings(config["Settings"])
         if self.gui_enabled:
             self.gui()
+
         # self.api = Mobileclient()
         # print("GMusicDownloader initialised")
         # self.api.login(account["username"], account["password"], Mobileclient.FROM_MAC_ADDRESS)
@@ -31,6 +32,10 @@ class GMusicDownloader:
         # for i in range(0,10):
         #     self.stream_download(tracks[i])
         # print("downloads complete")
+
+    def got_search_query(self, query):
+        print("downloader ", query)
+
 
     def get_directory_path(self, track):
         artist = track["artist"]
@@ -76,8 +81,9 @@ class GMusicDownloader:
     def gui(self):
         import tkinter as tk
 
-        root = tk.Tk()
-        window = Mainwindow(root)
+        guiroot = tk.Tk()
+        self.window = window = Mainwindow(self, guiroot)
+        # window.toplevel.protocol("WM_DELETE_WINDOW", window.toplevel.destroy)
         window.run()
 
 

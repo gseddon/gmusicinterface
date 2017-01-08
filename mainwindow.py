@@ -1,7 +1,15 @@
 import pygubu
 import tkinter as tk
 from tkinter import messagebox
+
+from main import GMusicDownloader
+
+
 class Mainwindow(pygubu.TkApplication):
+    def __init__(self, downloader, master=None ):
+        super().__init__(master)
+        self.downloader = downloader # type: GMusicDownloader
+
     def _create_ui(self):
         master = self.master
         master.wm_minsize(width=600, height=400)
@@ -20,3 +28,11 @@ class Mainwindow(pygubu.TkApplication):
     def view_downloads(self):
         messagebox.showinfo("Test", "Text")
 
+
+    def get_variables(self):
+        return {"searchbartext": self.builder.get_object("search_entry").get,
+                "tableview": self.mainwindow}
+
+    def search_entry_changed(self, action, value):
+        self.downloader.got_search_query(value)
+        return True
