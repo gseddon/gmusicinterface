@@ -5,6 +5,7 @@ from gmusicapi import Mobileclient
 import configparser
 import requests
 import vlc
+from mainwindow import *
 
 is_stream = True
 
@@ -15,11 +16,12 @@ class GMusicDownloader:
     music_directory = None
 
     def __init__(self):
-        self.gui()
-        # config = configparser.ConfigParser()
-        # config.read("config.ini")
-        # account = config["Account"]
-        # self.load_settings(config["Settings"])
+        config = configparser.ConfigParser()
+        config.read("config.ini")
+        account = config["Account"]
+        self.load_settings(config["Settings"])
+        if self.gui_enabled:
+            self.gui()
         # self.api = Mobileclient()
         # print("GMusicDownloader initialised")
         # self.api.login(account["username"], account["password"], Mobileclient.FROM_MAC_ADDRESS)
@@ -69,11 +71,15 @@ class GMusicDownloader:
         self.chunk_size = settingsDict.getint("chunk_size")
         self.file_type = "." + settingsDict["file_type"]
         self.music_directory = settingsDict["music_directory"]
+        self.gui_enabled = settingsDict.getboolean("gui_enabled")
 
     def gui(self):
-        import tkinter
-        top = tkinter.Tk()
-        top.mainloop()
+        import tkinter as tk
+
+        root = tk.Tk()
+        window = Mainwindow(root)
+        window.run()
+
 
 
 

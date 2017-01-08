@@ -1,3 +1,4 @@
 python-vlc
 gmusicapi
 requests
+pygubu
