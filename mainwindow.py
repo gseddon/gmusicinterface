@@ -1,14 +1,15 @@
 import pygubu
 import tkinter as tk
+from tkinter import ttk
 from tkinter import messagebox
 
 from main import GMusicDownloader
 
 
 class Mainwindow(pygubu.TkApplication):
-    def __init__(self, downloader, master=None ):
+    def __init__(self, downloader: GMusicDownloader, master: tk.Tk =None):
         super().__init__(master)
-        self.downloader = downloader # type: GMusicDownloader
+        self.downloader = downloader
 
     def _create_ui(self):
         master = self.master
@@ -21,7 +22,8 @@ class Mainwindow(pygubu.TkApplication):
         mainwindow.rowconfigure(4, weight=1)
         mainwindow.columnconfigure(1, weight=1)
         mainwindow.columnconfigure(0, weight=0)
-        builder.get_object('music_treeview')
+        self.treeview = builder.get_object('music_treeview')  # type: ttk.Treeview
+        self.loggedinlabel = builder.get_variable('loggedinlabel') # type: tk.StringVar
         builder.connect_callbacks(self)
 
 
