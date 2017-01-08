@@ -4,6 +4,7 @@ from tkinter import messagebox
 class Mainwindow(pygubu.TkApplication):
     def _create_ui(self):
         master = self.master
+        master.wm_minsize(width=600, height=400)
         self.builder = builder = pygubu.Builder()
         master.rowconfigure(0, weight=1)
         master.columnconfigure(0, weight=1)

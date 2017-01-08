@@ -114,10 +114,56 @@
           <property name="row">4</property>
           <property name="sticky">nsew</property>
         </layout>
+        <child>
+          <object class="ttk.Treeview.Column" id="titlecolumn">
+            <property name="column_anchor">w</property>
+            <property name="heading_anchor">w</property>
+            <property name="minwidth">20</property>
+            <property name="stretch">true</property>
+            <property name="text" translatable="yes">Title</property>
+            <property name="tree_column">True</property>
+            <property name="visible">true</property>
+            <property name="width">200</property>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Treeview.Column" id="artistcolumn">
+            <property name="column_anchor">w</property>
+            <property name="heading_anchor">w</property>
+            <property name="minwidth">20</property>
+            <property name="stretch">true</property>
+            <property name="text" translatable="yes">Artist</property>
+            <property name="tree_column">false</property>
+            <property name="visible">true</property>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Treeview.Column" id="albumcolumn">
+            <property name="column_anchor">w</property>
+            <property name="heading_anchor">w</property>
+            <property name="minwidth">20</property>
+            <property name="stretch">true</property>
+            <property name="text" translatable="yes">Album</property>
+            <property name="tree_column">false</property>
+            <property name="visible">true</property>
+          </object>
+        </child>
+        <child>
+          <object class="ttk.Treeview.Column" id="downloadedColumn">
+            <property name="column_anchor">w</property>
+            <property name="heading_anchor">w</property>
+            <property name="minwidth">20</property>
+            <property name="stretch">true</property>
+            <property name="text" translatable="yes">Saved</property>
+            <property name="tree_column">false</property>
+            <property name="visible">true</property>
+            <property name="width">40</property>
+          </object>
+        </child>
       </object>
     </child>
     <child>
-      <object class="ttk.Label" id="progresslabel">
+      <object class="ttk.Label" id="currentlabel">
         <property name="text" translatable="yes">Downloading: Holdin' on</property>
         <layout>
           <property name="column">0</property>
@@ -129,7 +175,7 @@
       </object>
     </child>
     <child>
-      <object class="ttk.Label" id="Label_4">
+      <object class="ttk.Label" id="progresslabel">
         <property name="text" translatable="yes">n/n @ n kb/s	</property>
         <layout>
           <property name="column">1</property>
