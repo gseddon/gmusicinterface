@@ -8,6 +8,7 @@
       <property name="column">0</property>
       <property name="propagate">True</property>
       <property name="row">0</property>
+      <property name="sticky">nsew</property>
       <columns>
         <column id="0">
           <property name="weight">3</property>
@@ -60,7 +61,7 @@
           <property name="column">0</property>
           <property name="propagate">True</property>
           <property name="row">1</property>
-          <property name="sticky">nsew</property>
+          <property name="sticky">w</property>
         </layout>
       </object>
     </child>
