@@ -1,6 +1,7 @@
 import configparser
 import os
 import threading
+from time import sleep
 
 import requests
 from queue import Queue
@@ -11,6 +12,7 @@ from gmusicapi import Mobileclient
 
 class GMusicDownloader(threading.Thread):
     api = None
+    library = list()
 
     def __init__(self, queue: Queue):
         super().__init__()
@@ -30,10 +32,11 @@ class GMusicDownloader(threading.Thread):
         self.queue.put({"login": self.username,
                         "library": self.library})
 
-    def get_directory_path(self, track):
+    @staticmethod
+    def get_directory_path(music_directory: str, track: dict):
         artist = track["artist"]
         album = track["album"]
-        artist_path = os.path.join(self.music_directory, artist)
+        artist_path = os.path.join(music_directory, artist)
         album_path = os.path.join(artist_path, album)
         if not os.path.exists(artist_path):
             os.makedirs(artist_path)
@@ -49,14 +52,13 @@ class GMusicDownloader(threading.Thread):
             except Empty:
                 pass
 
-
     def threaded_stream_download(self, track):
         threading.Thread(target=self.stream_download, args=(track,)).start()
 
     def stream_download(self, track):
         track_title = track["title"]
 
-        directory_path = self.get_directory_path(track)
+        directory_path = self.get_directory_path(self.music_directory, track)
         file_path = os.path.join(directory_path, track_title + self.file_type)
 
         if not os.path.exists(file_path):

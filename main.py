@@ -72,7 +72,7 @@ class Application:
     def download_selection(self, selecteditems: tuple):
         for trackid in selecteditems:
             track = [track for track in self.tracks if track["id"] == trackid][0]
-            self.downloader.stream_download(track)
+            self.downloader.threaded_stream_download(track)
 
     def download_complete(self, track: dict):
         if self.gui_enabled:
