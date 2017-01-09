@@ -49,6 +49,10 @@ class GMusicDownloader(threading.Thread):
             except Empty:
                 pass
 
+
+    def threaded_stream_download(self, track):
+        threading.Thread(target=self.stream_download, args=(track,)).start()
+
     def stream_download(self, track):
         track_title = track["title"]
 
@@ -70,11 +74,13 @@ class GMusicDownloader(threading.Thread):
                     if slowdown%20 == 0:
                         print(".", end="")
             print(" done.")
+            self.queue.put({"download complete": track})
         else:
             print(track_title + " already exists, skipping")
 
     def search_library(self, searchterm: str):
         return [track for track in self.library if searchterm in track['artist']]
+
 
     def track_already_downloaded(self, track: dict):
         return os.path.exists(

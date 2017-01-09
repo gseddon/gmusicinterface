@@ -7,9 +7,9 @@ from main import Application
 
 
 class Mainwindow(pygubu.TkApplication):
-    def __init__(self, downloader: Application, master: tk.Tk =None):
+    def __init__(self, application: Application, master: tk.Tk =None):
         super().__init__(master)
-        self.downloader = downloader
+        self.application = application
 
     def _create_ui(self):
         master = self.master
@@ -36,5 +36,17 @@ class Mainwindow(pygubu.TkApplication):
                 "tableview": self.mainwindow}
 
     def search_entry_changed(self, action, value):
-        self.downloader.got_search_query(value)
+        self.application.got_search_query(value)
         return True
+
+    def download_selection(self):
+        # returns a tuple of the ids of the selected items
+        selected_items = self.treeview.selection()  #type: tuple
+        self.application.download_selection(selected_items)
+
+    def insert_track(self, track: dict):
+        self.treeview.insert("", tk.END, track["id"], text="F",
+                                        values=(track["title"], track["artist"], track["album"], track["saved"]))
+
+    def track_download_complete(self, track: dict):
+        self.treeview.set(track["id"], column="downloadedColumn", value="√")

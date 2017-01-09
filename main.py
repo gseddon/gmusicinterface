@@ -28,7 +28,7 @@ class Application:
         if self.gui_enabled:
             self.guiroot = guiroot = tk.Tk()
             self.poll_downloader()
-            self.window = window = Mainwindow(self, guiroot)
+            self.mainwindow = window = Mainwindow(self, guiroot)
             window.run()
 
                 # for i in range(0,10):
@@ -41,45 +41,50 @@ class Application:
                 msg = self.queue.get(0) #type: dict
                 if "login" in msg:
                     self.login_complete(msg["login"])
+                if "download complete" in msg:
+                    self.download_complete(msg["download complete"])
             except Empty:
                 pass
         self.guiroot.after(100, self.poll_downloader)
 
     def got_search_query(self, query):
-        print("downloader ", query)
+        print("application queried", query)
+
         if self.gui_enabled:
-            # we need to only remove those songs which aren't there any more, and add new songs.
-            # oldtrackids = set([track['id'] for track in self.tracks])
-            # self.tracks = [track for track in self.library if track['artist'] == query]
-            # updatedtrackids = set([track['id'] for track in self.tracks])
-            # intersection = oldtrackids & updatedtrackids
-            # deletetrackids = oldtrackids - intersection
-            # newtrackids = updatedtrackids - intersection
-            # if len(deletetrackids) > 0:
-            #     self.window.treeview.delete(list(deletetrackids))
-            # for track in (track for track in self.tracks if track["id"] in newtrackids):
-            #     self.window.treeview.insert("", tk.END, track["id"], text="F", values= ( track["title"], track["artist"], track["album"]))
-            self.window.treeview.delete(*self.window.treeview.get_children())
+            self.mainwindow.treeview.delete(*self.mainwindow.treeview.get_children())
+
+        if query == "*":
             self.tracks = self.downloader.library
+        else:
+            self.tracks = self.downloader.search_library(query)
+
+        if self.gui_enabled:
             for track in self.tracks:
                 if self.downloader.track_already_downloaded(track):
-                   saved = "√"
+                   track["saved"] = "√"
                 else:
-                    saved = ""
-                self.window.treeview.insert("", tk.END, track["id"], text="F",
-                                        values=(track["title"], track["artist"], track["album"], saved))
+                    track["saved"] = ""
+                self.mainwindow.insert_track(track)
+
         else:
             print([track["title"] for track in self.library if track['artist'] in query])
 
+    def download_selection(self, selecteditems: tuple):
+        for trackid in selecteditems:
+            track = [track for track in self.tracks if track["id"] == trackid][0]
+            self.downloader.stream_download(track)
+
+    def download_complete(self, track: dict):
+        if self.gui_enabled:
+            self.mainwindow.track_download_complete(track)
+
+    def login_complete(self, username: str):
+        self.mainwindow.loggedinlabel.set("Logged in as " + username)
+        self.got_search_query("*")
 
 
-    def login_complete(self, username):
-        self.window.loggedinlabel.set("Logged in as " + username)
-
-
-
-    def load_settings(self, settingsDict):
-        self.gui_enabled = settingsDict.getboolean("gui_enabled")
+    def load_settings(self, configsettings):
+        self.gui_enabled = configsettings.getboolean("gui_enabled")
 
 
 if __name__ == "__main__":
