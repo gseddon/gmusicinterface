@@ -3,11 +3,11 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 
-from main import GMusicDownloader
+from main import Application
 
 
 class Mainwindow(pygubu.TkApplication):
-    def __init__(self, downloader: GMusicDownloader, master: tk.Tk =None):
+    def __init__(self, downloader: Application, master: tk.Tk =None):
         super().__init__(master)
         self.downloader = downloader
 

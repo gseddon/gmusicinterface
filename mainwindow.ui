@@ -34,9 +34,6 @@
         <row id="4">
           <property name="weight">4</property>
         </row>
-        <row id="6">
-          <property name="weight">0</property>
-        </row>
       </rows>
     </layout>
     <child>
@@ -113,6 +110,7 @@
         <layout>
           <property name="column">0</property>
           <property name="columnspan">3</property>
+          <property name="padx">15</property>
           <property name="propagate">True</property>
           <property name="row">4</property>
           <property name="sticky">nsew</property>
@@ -120,9 +118,9 @@
         <child>
           <object class="ttk.Treeview" id="music_treeview">
             <property name="selectmode">extended</property>
+            <property name="show">headings</property>
             <layout>
               <property name="column">0</property>
-              <property name="columnspan">3</property>
               <property name="pady">10</property>
               <property name="propagate">True</property>
               <property name="row">0</property>
@@ -173,7 +171,7 @@
                 <property name="text" translatable="yes">Saved</property>
                 <property name="tree_column">false</property>
                 <property name="visible">true</property>
-                <property name="width">200</property>
+                <property name="width">30</property>
               </object>
             </child>
           </object>
