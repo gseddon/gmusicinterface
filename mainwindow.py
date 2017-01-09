@@ -7,7 +7,7 @@ from main import Application
 
 
 class Mainwindow(pygubu.TkApplication):
-    def __init__(self, application: Application, master: tk.Tk =None):
+    def __init__(self, application: Application, master: tk.Tk = None):
         super().__init__(master)
         self.application = application
 
@@ -22,31 +22,31 @@ class Mainwindow(pygubu.TkApplication):
         mainwindow.rowconfigure(4, weight=1)
         mainwindow.columnconfigure(1, weight=1)
         mainwindow.columnconfigure(0, weight=0)
-        self.treeview = builder.get_object('music_treeview')  # type: ttk.Treeview
-        self.loggedinlabel = builder.get_variable('loggedinlabel') # type: tk.StringVar
+        self.__treeview = builder.get_object('music_treeview')  # type: ttk.Treeview
+        self.__loggedinlabel = builder.get_variable('loggedinlabel')  # type: tk.StringVar
         builder.connect_callbacks(self)
-
 
     def view_downloads(self):
         messagebox.showinfo("Test", "Text")
 
-
-    def get_variables(self):
-        return {"searchbartext": self.builder.get_object("search_entry").get,
-                "tableview": self.mainwindow}
-
-    def search_entry_changed(self, action, value):
+    def search_entry_changed(self, action: int, value: str):
         self.application.got_search_query(value)
         return True
 
     def download_selection(self):
-        # returns a tuple of the ids of the selected items
-        selected_items = self.treeview.selection()  #type: tuple
+        # returns a tuple of the iids of the selected items
+        selected_items = self.__treeview.selection()  # type: tuple
         self.application.download_selection(selected_items)
 
     def insert_track(self, track: dict):
-        self.treeview.insert("", tk.END, track["id"], text="F",
-                                        values=(track["title"], track["artist"], track["album"], track["saved"]))
+        self.__treeview.insert("", tk.END, track["id"], text="F",
+                               values=(track["title"], track["artist"], track["album"], track["saved"]))
+
+    def clear_tracks(self):
+        self.__treeview.delete(*self.__treeview.get_children())
 
     def track_download_complete(self, track: dict):
-        self.treeview.set(track["id"], column="downloadedColumn", value="√")
+        self.__treeview.set(track["id"], column="downloadedColumn", value="√")
+
+    def display_loggedin_user(self, user: str):
+        self.__loggedinlabel.set("Logged in as " + user)

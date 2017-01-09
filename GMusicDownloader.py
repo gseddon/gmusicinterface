@@ -1,11 +1,8 @@
 import configparser
 import os
 import threading
-from time import sleep
-
 import requests
 from queue import Queue
-from queue import Empty
 
 from gmusicapi import Mobileclient
 
@@ -21,8 +18,7 @@ class GMusicDownloader(threading.Thread):
         config = configparser.ConfigParser()
         config.read("config.ini")
         self.load_settings(config)
-        self.thread = threading.Thread(target=self.login)
-        self.thread.start()
+        threading.Thread(target=self.login).start()
 
     def login(self):
         self.api.login(self.username, self.password, Mobileclient.FROM_MAC_ADDRESS)
@@ -44,18 +40,10 @@ class GMusicDownloader(threading.Thread):
             os.makedirs(album_path)
         return album_path
 
-    def poll_queue(self):
-        while self.queue.qsize():
-            try:
-                msg = self.queue.get(0) #type: dict
-                print(msg)
-            except Empty:
-                pass
-
-    def threaded_stream_download(self, track):
+    def threaded_stream_download(self, track: dict):
         threading.Thread(target=self.stream_download, args=(track,)).start()
 
-    def stream_download(self, track):
+    def stream_download(self, track: dict):
         track_title = track["title"]
 
         directory_path = self.get_directory_path(self.music_directory, track)
@@ -73,7 +61,7 @@ class GMusicDownloader(threading.Thread):
                     songfile.write(chunk)
                     dl += len(chunk)
                     slowdown += 1
-                    if slowdown%20 == 0:
+                    if slowdown % 20 == 0:
                         print(".", end="")
             print(" done.")
             self.queue.put({"download complete": track})
@@ -82,7 +70,6 @@ class GMusicDownloader(threading.Thread):
 
     def search_library(self, searchterm: str):
         return [track for track in self.library if searchterm in track['artist']]
-
 
     def track_already_downloaded(self, track: dict):
         return os.path.exists(

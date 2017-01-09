@@ -1,11 +1,10 @@
-import os
 import configparser
-import threading
 from queue import Queue
 from queue import Empty
 import tkinter as tk
 from GMusicDownloader import GMusicDownloader
 from mainwindow import *
+
 
 class Application:
     chunk_size = None
@@ -24,21 +23,16 @@ class Application:
         self.queue = queue = Queue()
         self.downloader = GMusicDownloader(queue)
 
-
         if self.gui_enabled:
             self.guiroot = guiroot = tk.Tk()
             self.poll_downloader()
             self.mainwindow = window = Mainwindow(self, guiroot)
             window.run()
 
-                # for i in range(0,10):
-                #     self.stream_download(tracks[i])
-                # print("downloads complete")
-
     def poll_downloader(self):
         while self.queue.qsize():
             try:
-                msg = self.queue.get(0) #type: dict
+                msg = self.queue.get(0)  # type: dict
                 if "login" in msg:
                     self.login_complete(msg["login"])
                 if "download complete" in msg:
@@ -47,11 +41,11 @@ class Application:
                 pass
         self.guiroot.after(100, self.poll_downloader)
 
-    def got_search_query(self, query):
+    def got_search_query(self, query: str):
         print("application queried", query)
 
         if self.gui_enabled:
-            self.mainwindow.treeview.delete(*self.mainwindow.treeview.get_children())
+            self.mainwindow.clear_tracks()
 
         if query == "*":
             self.tracks = self.downloader.library
@@ -61,7 +55,7 @@ class Application:
         if self.gui_enabled:
             for track in self.tracks:
                 if self.downloader.track_already_downloaded(track):
-                   track["saved"] = "√"
+                    track["saved"] = "√"
                 else:
                     track["saved"] = ""
                 self.mainwindow.insert_track(track)
@@ -79,9 +73,8 @@ class Application:
             self.mainwindow.track_download_complete(track)
 
     def login_complete(self, username: str):
-        self.mainwindow.loggedinlabel.set("Logged in as " + username)
+        self.mainwindow.display_loggedin_user(username)
         self.got_search_query("*")
-
 
     def load_settings(self, configsettings):
         self.gui_enabled = configsettings.getboolean("gui_enabled")
