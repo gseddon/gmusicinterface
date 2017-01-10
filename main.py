@@ -14,6 +14,7 @@ class Application:
     tracks = set()
     executor = None
     guiroot = None
+    lastsort = {}
 
     def __init__(self):
         config = configparser.ConfigParser()
@@ -43,29 +44,17 @@ class Application:
 
     def got_search_query(self, query: str):
         print("application queried", query)
-
+        downloader = self.downloader
         if self.gui_enabled:
             self.mainwindow.clear_tracks()
 
-        if query == "*":
-            self.tracks = self.downloader.library
-        else:
-            self.tracks = self.downloader.search_library(query)
+        downloader.search_library(query)
+        self.update_user_with_filtered_tracks()
 
-        if self.gui_enabled:
-            for track in self.tracks:
-                if self.downloader.track_already_downloaded(track):
-                    track["saved"] = "√"
-                else:
-                    track["saved"] = ""
-                self.mainwindow.insert_track(track)
-
-        else:
-            print([track["title"] for track in self.library if track['artist'] in query])
 
     def download_selection(self, selecteditems: tuple):
         for trackid in selecteditems:
-            track = [track for track in self.tracks if track["id"] == trackid][0]
+            track = next(filter(lambda t: t["id"] == trackid, self.tracks))
             self.downloader.threaded_stream_download(track)
 
     def download_complete(self, track: dict):
@@ -78,6 +67,24 @@ class Application:
 
     def load_settings(self, configsettings):
         self.gui_enabled = configsettings.getboolean("gui_enabled")
+
+
+    def sort(self, column: str):
+        #so that you can click on the column and have it reverse on the second click
+        if column in self.lastsort:
+            self.lastsort = {column: not self.lastsort[column]}
+        else:
+            self.lastsort = {column: False}
+        self.downloader.sort_filtered_library(column, self.lastsort[column])
+        self.update_user_with_filtered_tracks()
+
+    def update_user_with_filtered_tracks(self):
+        if self.gui_enabled:
+            self.downloader.check_filtered_tracks_for_download()
+            self.mainwindow.clear_tracks()
+            self.mainwindow.insert_tracks(self.downloader.filtered_library)
+        else:
+            print([track["title"] for track in self.downloader.filtered_library])
 
 
 if __name__ == "__main__":

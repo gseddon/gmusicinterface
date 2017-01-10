@@ -10,6 +10,7 @@ from gmusicapi import Mobileclient
 class GMusicDownloader(threading.Thread):
     api = None
     library = list()
+    filtered_library = list()
 
     def __init__(self, queue: Queue):
         super().__init__()
@@ -69,11 +70,25 @@ class GMusicDownloader(threading.Thread):
             print(track_title + " already exists, skipping")
 
     def search_library(self, searchterm: str):
-        return [track for track in self.library if searchterm in track['artist']]
+        if searchterm == "*":
+            self.filtered_library = self.library
+        else:
+            self.filtered_library = filter(lambda t: searchterm in t["artist"], self.library)
 
     def track_already_downloaded(self, track: dict):
         return os.path.exists(
             os.path.join(self.music_directory, track["artist"], track["album"], track["title"] + self.file_type))
+
+    def check_filtered_tracks_for_download(self):
+        for track in self.filtered_library:
+            if "saved" not in track:
+                if self.track_already_downloaded(track):
+                    track["saved"] = "√"
+                else:
+                    track["saved"] = ""
+
+    def sort_filtered_library(self, sort: str, reversed: bool):
+        self.filtered_library = sorted(self.filtered_library, key= lambda k: k[sort], reverse=reversed)
 
     def load_settings(self, config: configparser.ConfigParser):
         account = config["Account"]

@@ -142,6 +142,7 @@
             <child>
               <object class="ttk.Treeview.Column" id="titlecolumn">
                 <property name="column_anchor">w</property>
+                <property name="command">sort_title</property>
                 <property name="heading_anchor">w</property>
                 <property name="minwidth">20</property>
                 <property name="stretch">true</property>
@@ -154,6 +155,7 @@
             <child>
               <object class="ttk.Treeview.Column" id="artistcolumn">
                 <property name="column_anchor">w</property>
+                <property name="command">sort_artist</property>
                 <property name="heading_anchor">w</property>
                 <property name="minwidth">20</property>
                 <property name="stretch">true</property>
@@ -166,6 +168,7 @@
             <child>
               <object class="ttk.Treeview.Column" id="albumcolumn">
                 <property name="column_anchor">w</property>
+                <property name="command">sort_album</property>
                 <property name="heading_anchor">w</property>
                 <property name="minwidth">20</property>
                 <property name="stretch">true</property>
@@ -178,6 +181,7 @@
             <child>
               <object class="ttk.Treeview.Column" id="downloadedColumn">
                 <property name="column_anchor">w</property>
+                <property name="command">sort_saved</property>
                 <property name="heading_anchor">w</property>
                 <property name="minwidth">20</property>
                 <property name="stretch">true</property>
