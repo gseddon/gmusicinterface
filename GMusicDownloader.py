@@ -30,11 +30,10 @@ class GMusicDownloader(threading.Thread):
         self.communicationqueue.put({"login": self.username,
                         "library": self.library})
 
-    @staticmethod
-    def get_directory_path(music_directory: str, track: dict):
+    def get_directory_path(self, track: dict):
         artist = track["artist"]
         album = track["album"]
-        artist_path = os.path.join(music_directory, artist)
+        artist_path = os.path.join(self.music_directory, artist)
         album_path = os.path.join(artist_path, album)
         if not os.path.exists(artist_path):
             os.makedirs(artist_path)
@@ -44,6 +43,7 @@ class GMusicDownloader(threading.Thread):
 
     def threaded_stream_downloads(self, tracklist: list):
         self.trackqueue = Queue()
+        self.filecreationlock = threading.Lock()
         for i in range(self.max_threads):
             threading.Thread(target=self.__downloadworker).start()
         for track in tracklist:
@@ -61,11 +61,13 @@ class GMusicDownloader(threading.Thread):
             self.stream_download(track)
             self.trackqueue.task_done()
 
-
     def stream_download(self, track: dict):
         track_title = track["title"]
 
-        directory_path = self.get_directory_path(self.music_directory, track)
+        self.filecreationlock.acquire()
+        directory_path = self.get_directory_path(track)
+        self.filecreationlock.release()
+
         file_path = os.path.join(directory_path, track_title + self.file_type)
 
         if not os.path.exists(file_path):

@@ -46,12 +46,10 @@ class Application:
         self.guiroot.after(100, self.poll_downloader)
 
     def got_search_query(self, query: str):
-        print("application queried", query)
-        downloader = self.downloader
         if self.gui_enabled:
             self.mainwindow.clear_tracks()
 
-        downloader.search_library(query)
+        self.downloader.search_library(query)
         self.update_user_with_filtered_tracks()
 
 
