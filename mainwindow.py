@@ -24,6 +24,8 @@ class Mainwindow(pygubu.TkApplication):
         mainwindow.columnconfigure(0, weight=0)
         self.__treeview = builder.get_object('music_treeview')  # type: ttk.Treeview
         self.__loggedinlabel = builder.get_variable('loggedinlabel')  # type: tk.StringVar
+        self.__currentdownloadslabel = builder.get_variable('currentdownloadslabel')  # type: tk.StringVar
+        self.__downloadcountlabel = builder.get_variable('downloadcountlabel')  # type: tk.StringVar
 
         sortcallbacks = {'sort_title' : lambda: self.application.sort('title'),
                          'sort_artist': lambda: self.application.sort('artist'),
@@ -55,8 +57,28 @@ class Mainwindow(pygubu.TkApplication):
 
     def track_download_complete(self, track: dict):
         self.__treeview.set(track["id"], column="downloadedColumn", value="√")
+        self.update_current_downloads(track["title"], remove=True)
 
     def display_loggedin_user(self, user: str):
         self.__loggedinlabel.set("Logged in as " + user)
 
+    def update_current_downloads(self, tracktitle: str, remove: bool = False):
+        currentstring = self.__currentdownloadslabel.get()
+        if not remove:
+            if currentstring == "":
+                self.__currentdownloadslabel.set("Downloading: " + tracktitle)
+            else:
+                self.__currentdownloadslabel.set(currentstring + ", " + tracktitle)
+        else:
+            updated = currentstring.replace(", " + tracktitle, "", 1)
+            updated = updated.replace("Downloading: " + tracktitle, "")
+            if (updated.startswith(", ")):
+                updated = updated.replace(", ", "Downloading: ", 1)
+            self.__currentdownloadslabel.set(updated)
 
+
+    def update_download_count(self, current, total):
+        if current == total:
+            self.__downloadcountlabel.set("")
+        else:
+            self.__downloadcountlabel.set("{}/{} @ n kb/s".format(current, total) )

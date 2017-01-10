@@ -11,10 +11,11 @@ class GMusicDownloader(threading.Thread):
     api = None
     library = list()
     filtered_library = list()
+    max_threads = None
 
     def __init__(self, queue: Queue):
         super().__init__()
-        self.queue = queue
+        self.communicationqueue = queue
         self.api = Mobileclient()
         config = configparser.ConfigParser()
         config.read("config.ini")
@@ -26,7 +27,7 @@ class GMusicDownloader(threading.Thread):
         print("logged in")
         self.library = self.api.get_all_songs()
         print("songs fetched")
-        self.queue.put({"login": self.username,
+        self.communicationqueue.put({"login": self.username,
                         "library": self.library})
 
     @staticmethod
@@ -41,8 +42,25 @@ class GMusicDownloader(threading.Thread):
             os.makedirs(album_path)
         return album_path
 
-    def threaded_stream_download(self, track: dict):
-        threading.Thread(target=self.stream_download, args=(track,)).start()
+    def threaded_stream_downloads(self, tracklist: list):
+        self.trackqueue = Queue()
+        for i in range(self.max_threads):
+            threading.Thread(target=self.__downloadworker).start()
+        for track in tracklist:
+            self.trackqueue.put(track)
+        #stop threads when they're done
+        for i in range(self.max_threads):
+            self.trackqueue.put(None)
+
+    def __downloadworker(self):
+        while True:
+            track = self.trackqueue.get()
+            if track is None:
+                break
+            self.communicationqueue.put({"downloading": track})
+            self.stream_download(track)
+            self.trackqueue.task_done()
+
 
     def stream_download(self, track: dict):
         track_title = track["title"]
@@ -52,8 +70,6 @@ class GMusicDownloader(threading.Thread):
 
         if not os.path.exists(file_path):
             dl = 0
-            slowdown = 0
-            print("downloading " + track_title, end="")
             track_url = self.api.get_stream_url(track['id'])
             response = requests.get(track_url, stream=True)
             total_length = int(response.headers.get('content-length'))
@@ -61,11 +77,9 @@ class GMusicDownloader(threading.Thread):
                 for chunk in response.iter_content(chunk_size=self.chunk_size):
                     songfile.write(chunk)
                     dl += len(chunk)
-                    slowdown += 1
-                    if slowdown % 20 == 0:
-                        print(".", end="")
-            print(" done.")
-            self.queue.put({"download complete": track})
+            print(track_title, " done.")
+            # next(filter(lambda t: t == track, self.filtered_library))
+            self.communicationqueue.put({"download complete": track})
         else:
             print(track_title + " already exists, skipping")
 
@@ -73,7 +87,7 @@ class GMusicDownloader(threading.Thread):
         if searchterm == "*":
             self.filtered_library = self.library
         else:
-            self.filtered_library = filter(lambda t: searchterm in t["artist"], self.library)
+            self.filtered_library = list(filter(lambda t: searchterm in t["artist"], self.library))
 
     def track_already_downloaded(self, track: dict):
         return os.path.exists(
@@ -98,3 +112,4 @@ class GMusicDownloader(threading.Thread):
         self.music_directory = settings["music_directory"]
         self.file_type = "." + settings["file_type"]
         self.chunk_size = settings.getint("chunk_size")
+        self.max_threads = settings.getint("download_threads", 5)
