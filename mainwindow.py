@@ -22,15 +22,18 @@ class Mainwindow(pygubu.TkApplication):
         mainwindow.rowconfigure(4, weight=1)
         mainwindow.columnconfigure(1, weight=1)
         mainwindow.columnconfigure(0, weight=0)
-        self.__treeview = builder.get_object('music_treeview')  # type: ttk.Treeview
-        self.__loggedinlabel = builder.get_variable('loggedinlabel')  # type: tk.StringVar
-        self.__currentdownloadslabel = builder.get_variable('currentdownloadslabel')  # type: tk.StringVar
-        self.__downloadcountlabel = builder.get_variable('downloadcountlabel')  # type: tk.StringVar
+        self.__treeview = builder.get_object('music_treeview')                          # type: ttk.Treeview
+        self.__loggedinlabel = builder.get_variable('loggedinlabel')                    # type: tk.StringVar
+        self.__currentdownloadslabel = builder.get_variable('currentdownloadslabel')    # type: tk.StringVar
+        self.__downloadcountlabel = builder.get_variable('downloadcountlabel')          # type: tk.StringVar
+        self.__searchentry = builder.get_variable('searchentry')                        # type: tk.StringVar
 
         sortcallbacks = {'sort_title' : lambda: self.application.sort('title'),
                          'sort_artist': lambda: self.application.sort('artist'),
                          'sort_album': lambda: self.application.sort('album'),
-                         'sort_saved': lambda: self.application.sort('saved')}
+                         'sort_saved': lambda: self.application.sort('saved'),
+                         'search_gmusic': lambda: self.application.search_gmusic(self.__searchentry.get()),
+                         'search_entry_enter_pressed': lambda b: self.application.search_gmusic(self.__searchentry.get())}
 
         builder.connect_callbacks(self)
         builder.connect_callbacks(sortcallbacks)
@@ -82,3 +85,4 @@ class Mainwindow(pygubu.TkApplication):
             self.__downloadcountlabel.set("")
         else:
             self.__downloadcountlabel.set("{}/{} @ n kb/s".format(current, total) )
+

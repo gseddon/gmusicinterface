@@ -104,9 +104,11 @@
       <object class="ttk.Entry" id="search_entry">
         <property name="font">TkDefaultFont</property>
         <property name="takefocus">true</property>
+        <property name="textvariable">string:searchentry</property>
         <property name="validate">key</property>
         <property name="validatecommand">search_entry_changed</property>
         <property name="validatecommand_args">%d %P</property>
+        <bind add="True" handler="search_entry_enter_pressed" sequence="&lt;Return&gt;" />
         <layout>
           <property name="column">0</property>
           <property name="columnspan">2</property>
@@ -162,7 +164,7 @@
                 <property name="text" translatable="yes">Artist</property>
                 <property name="tree_column">false</property>
                 <property name="visible">true</property>
-                <property name="width">200</property>
+                <property name="width">130</property>
               </object>
             </child>
             <child>

@@ -1,8 +1,10 @@
 import configparser
 import os
+import re
 import threading
 import requests
 from queue import Queue
+import unicodedata
 
 from gmusicapi import Mobileclient
 
@@ -30,16 +32,23 @@ class GMusicDownloader(threading.Thread):
         self.communicationqueue.put({"login": self.username,
                         "library": self.library})
 
-    def get_directory_path(self, track: dict):
-        artist = track["artist"]
-        album = track["album"]
+    def get_directory_path(self, track: dict, and_create = False):
+        artist = self.slugify(track["artist"])
+        album = self.slugify(track["album"])
         artist_path = os.path.join(self.music_directory, artist)
         album_path = os.path.join(artist_path, album)
-        if not os.path.exists(artist_path):
-            os.makedirs(artist_path)
-        if not os.path.exists(album_path):
-            os.makedirs(album_path)
+        if and_create:
+            if not os.path.exists(artist_path):
+                os.makedirs(artist_path)
+            if not os.path.exists(album_path):
+                os.makedirs(album_path)
         return album_path
+
+    def get_file_path(self, track: dict, directory_path: str = None):
+        if directory_path is not None:
+            return os.path.join(directory_path, self.slugify(track["title"]) + self.file_type)
+        else:
+            return os.path.join(self.get_directory_path(track), self.slugify(track["title"]) + self.file_type)
 
     def threaded_stream_downloads(self, tracklist: list):
         self.trackqueue = Queue()
@@ -65,10 +74,10 @@ class GMusicDownloader(threading.Thread):
         track_title = track["title"]
 
         self.filecreationlock.acquire()
-        directory_path = self.get_directory_path(track)
+        directory_path = self.get_directory_path(track, and_create=True)
         self.filecreationlock.release()
 
-        file_path = os.path.join(directory_path, track_title + self.file_type)
+        file_path = self.get_file_path(track, directory_path)
 
         if not os.path.exists(file_path):
             dl = 0
@@ -91,14 +100,36 @@ class GMusicDownloader(threading.Thread):
         else:
             self.filtered_library = list(filter(lambda t: searchterm in t["artist"], self.library))
 
-    def track_already_downloaded(self, track: dict):
-        return os.path.exists(
-            os.path.join(self.music_directory, track["artist"], track["album"], track["title"] + self.file_type))
+    def search_gmusic(self, searchstring: str):
+        threading.Thread(target=self.__search_worker_thread, args= (searchstring,)).start()
+
+    def __search_worker_thread(self, searchstring: str):
+        searchresults = self.api.search(searchstring)
+        self.filtered_library = list(map(self.parse_song_hit, searchresults["song_hits"]))
+        self.communicationqueue.put({"search results": True})
+
+    @staticmethod
+    def parse_song_hit(song_hit):
+        """
+        couldn't fit it into a lambda :'(
+        """
+        track = song_hit["track"]
+        track["id"] = track["storeId"]
+        return track
+
+    @staticmethod
+    def slugify(value):
+        """
+        Normalizes string, removes non-alpha characters
+        """
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('utf-8')
+        value = re.sub('[^\w\s-]', '', value).strip()
+        return value
 
     def check_filtered_tracks_for_download(self):
         for track in self.filtered_library:
             if "saved" not in track:
-                if self.track_already_downloaded(track):
+                if os.path.exists(self.get_file_path(track)):
                     track["saved"] = "√"
                 else:
                     track["saved"] = ""

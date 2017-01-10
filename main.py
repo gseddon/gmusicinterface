@@ -41,13 +41,18 @@ class Application:
                     self.download_complete(msg["download complete"])
                 if "downloading" in msg:
                     self.update_user_with_downloading(msg["downloading"])
+                if "search results" in msg:
+                    self.update_user_with_filtered_tracks()
+
             except Empty:
                 pass
-        self.guiroot.after(100, self.poll_downloader)
+        if self.gui_enabled:
+            self.guiroot.after(100, self.poll_downloader)
+        else:
+            pass
+            #TODO make this work with a different main loop
 
     def got_search_query(self, query: str):
-        if self.gui_enabled:
-            self.mainwindow.clear_tracks()
 
         self.downloader.search_library(query)
         self.update_user_with_filtered_tracks()
@@ -98,6 +103,8 @@ class Application:
         self.completed_downloads += 1
         self.mainwindow.update_download_count(self.completed_downloads, self.requested_downloads)
 
+    def search_gmusic(self, searchstring: str):
+        self.downloader.search_gmusic(searchstring)
 
 
 if __name__ == "__main__":
