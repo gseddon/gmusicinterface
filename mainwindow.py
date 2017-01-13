@@ -5,6 +5,8 @@ from tkinter import messagebox
 from functools import partial
 from main import Application
 
+from preferences import Preferences
+
 
 class Mainwindow(pygubu.TkApplication):
     def __init__(self, application: Application, master: tk.Tk = None):
@@ -19,6 +21,10 @@ class Mainwindow(pygubu.TkApplication):
         master.columnconfigure(0, weight=1)
         builder.add_from_file('mainwindow.ui')
         self.mainwindow = mainwindow = builder.get_object('mainwindow', master)
+
+        self.mainmenu = menu = builder.get_object('mainmenu')
+        self.set_menu(menu)
+
         mainwindow.rowconfigure(4, weight=1)
         mainwindow.columnconfigure(1, weight=1)
         mainwindow.columnconfigure(0, weight=0)
@@ -65,6 +71,11 @@ class Mainwindow(pygubu.TkApplication):
     def display_loggedin_user(self, user: str):
         self.__loggedinlabel.set("Logged in as " + user)
 
+    def open_preferences(self):
+        self.newwindow = tk.Toplevel(self.master)
+        self.newwindow.wm_title("Preferences")
+        self.preferences = Preferences(self.newwindow)
+
     def update_current_downloads(self, tracktitle: str, remove: bool = False):
         currentstring = self.__currentdownloadslabel.get()
         if not remove:
@@ -78,7 +89,6 @@ class Mainwindow(pygubu.TkApplication):
             if (updated.startswith(", ")):
                 updated = updated.replace(", ", "Downloading: ", 1)
             self.__currentdownloadslabel.set(updated)
-
 
     def update_download_count(self, current, total):
         if current == total:
