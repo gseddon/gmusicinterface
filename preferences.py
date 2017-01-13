@@ -36,5 +36,6 @@ class Preferences():
         messagebox.showinfo("You Chose", self.pathchooser.cget('path') + "\n")
 
     def write_setttings(self):
+
         pass
 
