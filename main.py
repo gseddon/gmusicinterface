@@ -60,8 +60,8 @@ class Application:
 
     def download_selection(self, selecteditems: tuple):
         self.requested_downloads = len(selecteditems)
-        self.completed_downloads = 0
-        self.mainwindow.update_download_count(self.completed_downloads, self.requested_downloads)
+        self.complete_and_in_progress_downloads = 0
+        self.mainwindow.update_download_count(self.complete_and_in_progress_downloads, self.requested_downloads)
         downloadtracks = list()
         for trackid in selecteditems:
             #will get the full track object that matches the track id
@@ -72,6 +72,8 @@ class Application:
     def download_complete(self, track: dict):
         if self.gui_enabled:
             self.mainwindow.track_download_complete(track)
+            if self.complete_and_in_progress_downloads == self.requested_downloads:
+                self.mainwindow.update_download_count(complete=True)
 
     def login_complete(self, username: str):
         self.mainwindow.display_loggedin_user(username)
@@ -100,8 +102,8 @@ class Application:
 
     def update_user_with_downloading(self, track):
         self.mainwindow.update_current_downloads(track["title"])
-        self.completed_downloads += 1
-        self.mainwindow.update_download_count(self.completed_downloads, self.requested_downloads)
+        self.complete_and_in_progress_downloads += 1
+        self.mainwindow.update_download_count(self.complete_and_in_progress_downloads, self.requested_downloads)
 
     def search_gmusic(self, searchstring: str):
         self.downloader.search_gmusic(searchstring)

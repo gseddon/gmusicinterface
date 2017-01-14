@@ -5,6 +5,10 @@ import threading
 import requests
 from queue import Queue
 import unicodedata
+from mutagen.easyid3 import EasyID3
+from mutagen.id3 import ID3NoHeaderError
+from mutagen.mp3 import MP3
+import mutagen
 
 from gmusicapi import Mobileclient
 
@@ -88,11 +92,13 @@ class GMusicDownloader(threading.Thread):
                 for chunk in response.iter_content(chunk_size=self.chunk_size):
                     songfile.write(chunk)
                     dl += len(chunk)
+            self.add_tags(file_path, track)
             print(track_title, " done.")
             # next(filter(lambda t: t == track, self.filtered_library))
-            self.communicationqueue.put({"download complete": track})
         else:
             print(track_title + " already exists, skipping")
+
+        self.communicationqueue.put({"download complete": track})
 
     def search_library(self, searchterm: str):
         if searchterm == "*":
@@ -146,3 +152,25 @@ class GMusicDownloader(threading.Thread):
         self.file_type = "." + settings["file_type"]
         self.chunk_size = settings.getint("chunk_size")
         self.max_threads = settings.getint("download_threads", 5)
+
+    def add_tags(self, filepath: str, track: dict):
+        try:
+            tags = EasyID3(filepath)
+        except ID3NoHeaderError:
+            tags = mutagen.File(filepath, easy=True)
+            tags.add_tags()
+
+        tags["tracknumber"] = str(track["trackNumber"]).encode("utf-8").decode("utf-8")
+        tags["title"] = track["title"]
+        tags["artist"] = track["artist"]
+        tags["album"] = track["album"]
+        tags["discnumber"] = str(track["discNumber"]).encode("utf-8").decode("utf-8")
+        tags["genre"] = track["genre"]
+        tags["composer"] = track["composer"]
+        tags["albumartist"] = track["albumArtist"]
+        if "beatsPerMinute" in track:
+            tags["bpm"] = track["beatsPerMinute"]
+        tags.save(v2_version=3)
+
+
+
