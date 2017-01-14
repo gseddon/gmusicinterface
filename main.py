@@ -2,6 +2,7 @@ import configparser
 from queue import Queue
 from queue import Empty
 import tkinter as tk
+from tkinter import messagebox
 from GMusicDownloader import GMusicDownloader
 from mainwindow import *
 
@@ -27,8 +28,8 @@ class Application:
 
         if self.gui_enabled:
             self.guiroot = guiroot = tk.Tk()
-            self.poll_downloader()
             self.mainwindow = window = Mainwindow(self, guiroot)
+            self.poll_downloader()
             window.run()
 
     def poll_downloader(self):
@@ -43,6 +44,8 @@ class Application:
                     self.update_user_with_downloading(msg["downloading"])
                 if "search results" in msg:
                     self.update_user_with_filtered_tracks()
+                if "ConfigError" in msg:
+                    self.update_user_with_error(msg["ConfigError"])
 
             except Empty:
                 pass
@@ -61,7 +64,8 @@ class Application:
     def download_selection(self, selecteditems: tuple):
         self.requested_downloads = len(selecteditems)
         self.complete_and_in_progress_downloads = 0
-        self.mainwindow.update_download_count(self.complete_and_in_progress_downloads, self.requested_downloads)
+        if self.gui_enabled:
+            self.mainwindow.update_download_count(self.complete_and_in_progress_downloads, self.requested_downloads)
         downloadtracks = list()
         for trackid in selecteditems:
             #will get the full track object that matches the track id
@@ -80,8 +84,18 @@ class Application:
         self.got_search_query("*")
 
     def load_settings(self, configsettings):
-        settings = configsettings["Settings"]
-        self.gui_enabled = settings.getboolean("gui_enabled")
+        try:
+            settings = configsettings["Settings"]
+            self.gui_enabled = settings.getboolean("gui_enabled")
+        except KeyError as e:
+            self.update_user_with_error({"title": "Configuration Error",
+                                              "body": "Could not find " +  e.args[0] + " in preferences, please update prefs and try again"})
+
+    def reload_settings(self, configsettings):
+        self.load_settings(configsettings)
+        if self.gui_enabled:
+            self.downloader.load_settings(configsettings)
+            self.downloader.threaded_login()
 
     def sort(self, column: str):
         #so that you can click on the column and have it reverse on the second click
@@ -107,6 +121,10 @@ class Application:
 
     def search_gmusic(self, searchstring: str):
         self.downloader.search_gmusic(searchstring)
+
+    def update_user_with_error(self, error: dict):
+        if self.gui_enabled:
+            self.mainwindow.update_user_with_error(error)
 
 
 if __name__ == "__main__":

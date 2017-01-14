@@ -75,7 +75,7 @@ class Mainwindow(pygubu.TkApplication):
     def open_preferences(self):
         self.newwindow = tk.Toplevel(self.master)
         self.newwindow.wm_title("Preferences")
-        self.preferences = Preferences(self.newwindow)
+        self.preferences = Preferences(self.newwindow, self.application)
 
     def update_current_downloads(self, tracktitle: str, remove: bool = False):
         currentstring = self.__currentdownloadslabel.get()
@@ -97,3 +97,5 @@ class Mainwindow(pygubu.TkApplication):
         else:
             self.__downloadcountlabel.set("{}/{} @ n kb/s".format(current, total) )
 
+    def update_user_with_error(self, error: dict):
+        messagebox.showerror(error["title"], error["body"])

@@ -18,6 +18,8 @@ class GMusicDownloader(threading.Thread):
     library = list()
     filtered_library = list()
     max_threads = None
+    configerror = False
+    loggedin = False
 
     def __init__(self, queue: Queue):
         super().__init__()
@@ -26,15 +28,21 @@ class GMusicDownloader(threading.Thread):
         config = configparser.ConfigParser()
         config.read("config.ini")
         self.load_settings(config)
-        threading.Thread(target=self.login).start()
+        if not self.configerror:
+            self.threaded_login()
 
-    def login(self):
-        self.api.login(self.username, self.password, Mobileclient.FROM_MAC_ADDRESS)
-        print("logged in")
-        self.library = self.api.get_all_songs()
-        print("songs fetched")
-        self.communicationqueue.put({"login": self.username,
-                        "library": self.library})
+    def threaded_login(self):
+        threading.Thread(target=self._login).start()
+
+    def _login(self):
+        if not self.loggedin:
+            self.api.login(self.username, self.password, Mobileclient.FROM_MAC_ADDRESS)
+            print("logged in")
+            self.library = self.api.get_all_songs()
+            print("songs fetched")
+            self.communicationqueue.put({"login": self.username,
+                            "library": self.library})
+            self.loggedin = True
 
     def get_directory_path(self, track: dict, and_create = False):
         artist = self.slugify(track["artist"])
@@ -109,7 +117,7 @@ class GMusicDownloader(threading.Thread):
         threading.Thread(target=self.__search_worker_thread, args= (searchstring,)).start()
 
     def __search_worker_thread(self, searchstring: str):
-        searchresults = self.api.search(searchstring.encode("utf-8").decode("utf-8"))
+        searchresults = self.api.search(self.slugify(searchstring))
         self.filtered_library = list(map(self.parse_song_hit, searchresults["song_hits"]))
         self.communicationqueue.put({"search results": True})
 
@@ -143,14 +151,21 @@ class GMusicDownloader(threading.Thread):
         self.filtered_library = sorted(self.filtered_library, key= lambda k: k[sort], reverse=reversed)
 
     def load_settings(self, config: configparser.ConfigParser):
-        account = config["Account"]
-        self.username = account["username"]
-        self.password = account["password"]
-        settings = config["Settings"]
-        self.music_directory = settings["music_directory"]
-        self.file_type = "." + settings["file_type"]
-        self.chunk_size = settings.getint("chunk_size")
-        self.max_threads = settings.getint("download_threads", 5)
+        try:
+            account = config["Account"]
+            self.username = account["username"]
+            self.password = account["password"]
+            settings = config["Settings"]
+            self.music_directory = settings["music_directory"]
+            self.file_type = "." + settings["file_type"]
+            self.chunk_size = settings.getint("chunk_size")
+            self.max_threads = settings.getint("download_threads", 5)
+            self.configerror = False
+        except KeyError as e:
+            self.communicationqueue.put({"ConfigError":
+                                             {"title": "Configuration Error GMusicDownloader",
+                                              "body": "Could not find " +  e.args[0] + " in preferences, please update prefs and try again"}})
+            self.configerror = True
 
     def add_tags(self, filepath: str, track: dict):
         try:
