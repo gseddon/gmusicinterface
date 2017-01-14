@@ -199,12 +199,11 @@ class GMusicDownloader(threading.Thread):
     def open_playlists(self):
         if self.playlists is None:
             self.playlists = self.api.get_all_playlists()
-            self.communicationqueue.put({"playlists loaded": self.playlists})
+        self.communicationqueue.put({"playlists loaded": self.playlists})
 
     def all_playlists(self, iid: str):
         #TODO make this work for non user owned playlists. should use get_shared_playlist_contents for those.
-        if self.fetchedlists is None:
-            self.fetchedlists = self.api.get_all_user_playlist_contents() #type: list
+        self.fetchedlists = self.api.get_all_user_playlist_contents() #type: list
         for fetchedplaylist in self.fetchedlists:
             existing_playlist = next(filter(lambda p: p["id"] == fetchedplaylist["id"], self.playlists))
             existing_playlist["tracks"] = fetchedplaylist["tracks"]

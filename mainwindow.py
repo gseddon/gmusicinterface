@@ -11,6 +11,7 @@ from preferences import Preferences
 class Mainwindow(pygubu.TkApplication):
 
     treeview_contenttype = "Track"
+    message = None
 
     def __init__(self, application: Application, master: tk.Tk = None):
         super().__init__(master)
@@ -38,34 +39,32 @@ class Mainwindow(pygubu.TkApplication):
         self.__downloadcountlabel = builder.get_variable('downloadcountlabel')          # type: tk.StringVar
         self.__searchentry = builder.get_variable('searchentry')                        # type: tk.StringVar
 
-        callbacks = {'sort_title' : lambda: self.application.sort('title', self.treeview_contenttype),
-                         'sort_artist': lambda: self.application.sort('artist', self.treeview_contenttype),
-                         'sort_album': lambda: self.application.sort('album', self.treeview_contenttype),
-                         'sort_saved': lambda: self.application.sort('saved', self.treeview_contenttype),
-                         'search_gmusic': lambda: self.application.search_gmusic(self.__searchentry.get()),
+        callbacks = {'sort_title' :         lambda: self.application.sort('title', self.treeview_contenttype),
+                         'sort_artist':     lambda: self.application.sort('artist', self.treeview_contenttype),
+                         'sort_album':      lambda: self.application.sort('album', self.treeview_contenttype),
+                         'sort_saved':      lambda: self.application.sort('saved', self.treeview_contenttype),
+                         'search_gmusic':   lambda: self.application.search_gmusic(self.__searchentry.get()),
                          'search_entry_enter_pressed': lambda b: self.application.search_gmusic(self.__searchentry.get()),
-                         'open_playlists': lambda: self.application.open_playlists()}
+                         'search_entry_changed': lambda a, v: self.application.got_search_query(v),
+                         'open_playlists': lambda: self.application.open_playlists(),
+                         'download_selection': lambda:  self.application.download_selection(self.__treeview.selection()),
+                         'open_preferences' : lambda: self.open_preferences(),
+                         'ontreeview_doubleclick': lambda e: self.ontreeview_doubleclick(e)
+                     }
 
-        builder.connect_callbacks(self)
         builder.connect_callbacks(callbacks)
 
     def view_downloads(self):
         messagebox.showinfo("Test", "Text")
 
-    def search_entry_changed(self, action: int, value: str):
-        self.application.got_search_query(value)
-        return True
-
-    def download_selection(self):
-        # returns a tuple of the iids of the selected items
-        selected_items = self.__treeview.selection()  # type: tuple
-        self.application.download_selection(selected_items)
-
     def insert_tracks(self, tracks):
         self.configure_treeview_for_content("Track")
         for track in tracks:
-            self.__treeview.insert("", tk.END, track["id"], text="T",
+            if not self.__treeview.exists(track["id"]):
+                self.__treeview.insert("", tk.END, track["id"], text="T",
                                values=(track["title"], track["artist"], track["album"], track["saved"]))
+            else:
+                self.__treeview.move(track["id"], "", tk.END)
 
     def empty_treeview(self):
         self.__treeview.delete(*self.__treeview.get_children())
@@ -127,3 +126,13 @@ class Mainwindow(pygubu.TkApplication):
         print('displaying playlist with iid ', item)
         if self.treeview_contenttype is "Playlist":
             self.application.display_playlist(item)
+
+    def working(self, message="", remove=False):
+        currentstring = self.__currentdownloadslabel.get()
+        if self.message is not None:
+            currentstring = currentstring.replace(self.message, "")
+        self.message = message
+        if remove:
+            self.__currentdownloadslabel.set(currentstring)
+        else:
+            self.__currentdownloadslabel.set(currentstring + message)

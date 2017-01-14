@@ -61,6 +61,7 @@ class Application:
 
         self.downloader.search_library(query)
         self.update_user_with_filtered_tracks()
+        return True #this is because we are hijacking the validate function for the text field to get called on every keypress.
 
     def download_selection(self, selected_items: tuple):
         self.requested_downloads = len(selected_items)
@@ -114,6 +115,7 @@ class Application:
     def update_user_with_filtered_tracks(self):
         if self.gui_enabled:
             self.downloader.check_filtered_tracks_for_download()
+            self.mainwindow.working(remove=True)
             self.mainwindow.empty_treeview()
             self.mainwindow.insert_tracks(self.downloader.filtered_library)
         else:
@@ -139,6 +141,7 @@ class Application:
             self.mainwindow.display_playlists(self.downloader.playlists)
 
     def display_playlist(self, iid: str):
+        self.mainwindow.working("Fetching Playlist")
         self.downloader.threaded_api_query(self.downloader.all_playlists, iid)
 
 
