@@ -38,10 +38,10 @@ class Mainwindow(pygubu.TkApplication):
         self.__downloadcountlabel = builder.get_variable('downloadcountlabel')          # type: tk.StringVar
         self.__searchentry = builder.get_variable('searchentry')                        # type: tk.StringVar
 
-        callbacks = {'sort_title' : lambda: self.application.sort('title'),
-                         'sort_artist': lambda: self.application.sort('artist'),
-                         'sort_album': lambda: self.application.sort('album'),
-                         'sort_saved': lambda: self.application.sort('saved'),
+        callbacks = {'sort_title' : lambda: self.application.sort('title', self.treeview_contenttype),
+                         'sort_artist': lambda: self.application.sort('artist', self.treeview_contenttype),
+                         'sort_album': lambda: self.application.sort('album', self.treeview_contenttype),
+                         'sort_saved': lambda: self.application.sort('saved', self.treeview_contenttype),
                          'search_gmusic': lambda: self.application.search_gmusic(self.__searchentry.get()),
                          'search_entry_enter_pressed': lambda b: self.application.search_gmusic(self.__searchentry.get()),
                          'open_playlists': lambda: self.application.open_playlists()}

@@ -15,7 +15,9 @@ class Application:
     executor = None
     guiroot = None
     lastsort = {}
-
+    requested_downloads = None
+    complete_and_in_progress_downloads = None
+    gui_enabled = True
 
     def __init__(self):
         config = configparser.ConfigParser()
@@ -46,32 +48,31 @@ class Application:
                 if "ConfigError" in msg:
                     self.update_user_with_error(msg["ConfigError"])
                 if "playlists loaded" in msg:
-                    self.display_playlists(msg["playlists loaded"])
+                    self.display_playlists()
             except Empty:
                 pass
         if self.gui_enabled:
             self.guiroot.after(100, self.poll_downloader)
         else:
             pass
-            #TODO make this work with a different main loop
+            # TODO make this work with a different main loop
 
     def got_search_query(self, query: str):
 
         self.downloader.search_library(query)
         self.update_user_with_filtered_tracks()
 
-
-    def download_selection(self, selecteditems: tuple):
-        self.requested_downloads = len(selecteditems)
+    def download_selection(self, selected_items: tuple):
+        self.requested_downloads = len(selected_items)
         self.complete_and_in_progress_downloads = 0
         if self.gui_enabled:
             self.mainwindow.update_download_count(self.complete_and_in_progress_downloads, self.requested_downloads)
-        downloadtracks = list()
-        for trackid in selecteditems:
-            #will get the full track object that matches the track id
-            track = next(filter(lambda t: t["id"] == trackid, self.downloader.filtered_library))
-            downloadtracks.append(track)
-        self.downloader.threaded_stream_downloads(downloadtracks)
+        download_tracks = list()
+        for track_id in selected_items:
+            # will get the full track object that matches the track id
+            track = next(filter(lambda t: t["id"] == track_id, self.downloader.filtered_library))
+            download_tracks.append(track)
+        self.downloader.threaded_stream_downloads(download_tracks)
 
     def download_complete(self, track: dict):
         if self.gui_enabled:
@@ -89,7 +90,8 @@ class Application:
             self.gui_enabled = settings.getboolean("gui_enabled")
         except KeyError as e:
             self.update_user_with_error({"title": "Configuration Error",
-                                              "body": "Could not find " +  e.args[0] + " in preferences, please update prefs and try again"})
+                                         "body": "Could not find " + e.args[
+                                             0] + " in preferences, please update prefs and try again"})
 
     def reload_settings(self, configsettings):
         self.load_settings(configsettings)
@@ -97,14 +99,17 @@ class Application:
             self.downloader.load_settings(configsettings)
             self.downloader.threaded_api_query(self.downloader.login)
 
-    def sort(self, column: str):
-        #so that you can click on the column and have it reverse on the second click
+    def sort(self, column: str, contenttype: str):
+        # so that you can click on the column and have it reverse on the second click
         if column in self.lastsort:
             self.lastsort = {column: not self.lastsort[column]}
         else:
             self.lastsort = {column: False}
-        self.downloader.sort_filtered_library(column, self.lastsort[column])
-        self.update_user_with_filtered_tracks()
+        self.downloader.sort(column, self.lastsort[column], contenttype)
+        if contenttype == "Track":
+            self.update_user_with_filtered_tracks()
+        elif contenttype == "Playlist":
+            self.display_playlists()
 
     def update_user_with_filtered_tracks(self):
         if self.gui_enabled:
@@ -119,8 +124,8 @@ class Application:
         self.complete_and_in_progress_downloads += 1
         self.mainwindow.update_download_count(self.complete_and_in_progress_downloads, self.requested_downloads)
 
-    def search_gmusic(self, searchstring: str):
-        self.downloader.threaded_api_query(self.downloader.search_worker_thread, searchstring)
+    def search_gmusic(self, search_string: str):
+        self.downloader.threaded_api_query(self.downloader.search_worker_thread, search_string)
 
     def update_user_with_error(self, error: dict):
         if self.gui_enabled:
@@ -129,9 +134,9 @@ class Application:
     def open_playlists(self):
         self.downloader.threaded_api_query(self.downloader.open_playlists)
 
-    def display_playlists(self, playlists: dict):
+    def display_playlists(self):
         if self.gui_enabled:
-            self.mainwindow.display_playlists(playlists)
+            self.mainwindow.display_playlists(self.downloader.playlists)
 
     def display_playlist(self, iid: str):
         self.downloader.threaded_api_query(self.downloader.all_playlists, iid)

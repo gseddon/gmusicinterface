@@ -147,8 +147,18 @@ class GMusicDownloader(threading.Thread):
                 else:
                     track["saved"] = ""
 
-    def sort_filtered_library(self, sort: str, reversed: bool):
-        self.filtered_library = sorted(self.filtered_library, key= lambda k: k[sort], reverse=reversed)
+    def sort(self, sort: str, reversed: bool, contentType: str):
+        if contentType == "Track":
+            self.filtered_library = sorted(self.filtered_library, key= lambda k: k[sort], reverse=reversed)
+        elif contentType == "Playlist":
+            def lazy_hack_for_playlist_sort(playlist: dict):
+                if sort == "title":
+                    return playlist["name"]
+                if sort == "artist":
+                    return playlist["ownerName"]
+                if sort == "album":
+                    return playlist['type']
+            self.playlists = sorted(self.playlists, key= lazy_hack_for_playlist_sort, reverse=reversed)
 
     def load_settings(self, config: configparser.ConfigParser):
         try:
