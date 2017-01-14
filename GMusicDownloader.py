@@ -9,6 +9,7 @@ from mutagen.easyid3 import EasyID3
 from mutagen.id3 import ID3NoHeaderError
 from mutagen.mp3 import MP3
 import mutagen
+import types
 
 from gmusicapi import Mobileclient
 
@@ -20,6 +21,8 @@ class GMusicDownloader(threading.Thread):
     max_threads = None
     configerror = False
     loggedin = False
+    playlists = None
+    fetchedlists = None # type: list
 
     def __init__(self, queue: Queue):
         super().__init__()
@@ -29,12 +32,9 @@ class GMusicDownloader(threading.Thread):
         config.read("config.ini")
         self.load_settings(config)
         if not self.configerror:
-            self.threaded_login()
+            self.threaded_api_query(self.login)
 
-    def threaded_login(self):
-        threading.Thread(target=self._login).start()
-
-    def _login(self):
+    def login(self):
         if not self.loggedin:
             self.api.login(self.username, self.password, Mobileclient.FROM_MAC_ADDRESS)
             print("logged in")
@@ -113,10 +113,10 @@ class GMusicDownloader(threading.Thread):
         else:
             self.filtered_library = list(filter(lambda t: searchterm in t["artist"], self.library))
 
-    def search_gmusic(self, searchstring: str):
-        threading.Thread(target=self.__search_worker_thread, args= (searchstring,)).start()
+    def threaded_api_query(self, worker: types.FunctionType, *args):
+        threading.Thread(target=worker, args= (*args,)).start()
 
-    def __search_worker_thread(self, searchstring: str):
+    def search_worker_thread(self, searchstring: str):
         searchresults = self.api.search(self.slugify(searchstring))
         self.filtered_library = list(map(self.parse_song_hit, searchresults["song_hits"]))
         self.communicationqueue.put({"search results": True})
@@ -186,5 +186,32 @@ class GMusicDownloader(threading.Thread):
             tags["bpm"] = track["beatsPerMinute"]
         tags.save(v2_version=3)
 
+    def open_playlists(self):
+        if self.playlists is None:
+            self.playlists = self.api.get_all_playlists()
+            self.communicationqueue.put({"playlists loaded": self.playlists})
 
+    def all_playlists(self, iid: str):
+        #TODO make this work for non user owned playlists. should use get_shared_playlist_contents for those.
+        if self.fetchedlists is None:
+            self.fetchedlists = self.api.get_all_user_playlist_contents() #type: list
+        for fetchedplaylist in self.fetchedlists:
+            existing_playlist = next(filter(lambda p: p["id"] == fetchedplaylist["id"], self.playlists))
+            existing_playlist["tracks"] = fetchedplaylist["tracks"]
+            if fetchedplaylist["id"] == iid:
+                matchedplaylisttrackids = fetchedplaylist["tracks"]
+                self.filtered_library = self.songs_from_playlist(matchedplaylisttrackids)
+                self.communicationqueue.put({"search results": True})
 
+    def songs_from_playlist(self, playlist):
+        tracks = list()
+        for id_dict in playlist:
+            if "track" in id_dict:
+                track = id_dict["track"]
+            else:
+                track = next(filter(lambda t: t["id"] == id_dict['trackId'], self.library), None)
+            if "id" not in track:
+                track["id"] = track["storeId"]
+            tracks.append(track)
+
+        return tracks

@@ -45,7 +45,8 @@ class Application:
                     self.update_user_with_filtered_tracks()
                 if "ConfigError" in msg:
                     self.update_user_with_error(msg["ConfigError"])
-
+                if "playlists loaded" in msg:
+                    self.display_playlists(msg["playlists loaded"])
             except Empty:
                 pass
         if self.gui_enabled:
@@ -94,7 +95,7 @@ class Application:
         self.load_settings(configsettings)
         if self.gui_enabled:
             self.downloader.load_settings(configsettings)
-            self.downloader.threaded_login()
+            self.downloader.threaded_api_query(self.downloader.login)
 
     def sort(self, column: str):
         #so that you can click on the column and have it reverse on the second click
@@ -108,7 +109,7 @@ class Application:
     def update_user_with_filtered_tracks(self):
         if self.gui_enabled:
             self.downloader.check_filtered_tracks_for_download()
-            self.mainwindow.clear_tracks()
+            self.mainwindow.empty_treeview()
             self.mainwindow.insert_tracks(self.downloader.filtered_library)
         else:
             print([track["title"] for track in self.downloader.filtered_library])
@@ -119,11 +120,21 @@ class Application:
         self.mainwindow.update_download_count(self.complete_and_in_progress_downloads, self.requested_downloads)
 
     def search_gmusic(self, searchstring: str):
-        self.downloader.search_gmusic(searchstring)
+        self.downloader.threaded_api_query(self.downloader.search_worker_thread, searchstring)
 
     def update_user_with_error(self, error: dict):
         if self.gui_enabled:
             self.mainwindow.update_user_with_error(error)
+
+    def open_playlists(self):
+        self.downloader.threaded_api_query(self.downloader.open_playlists)
+
+    def display_playlists(self, playlists: dict):
+        if self.gui_enabled:
+            self.mainwindow.display_playlists(playlists)
+
+    def display_playlist(self, iid: str):
+        self.downloader.threaded_api_query(self.downloader.all_playlists, iid)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,9 @@ from preferences import Preferences
 
 
 class Mainwindow(pygubu.TkApplication):
+
+    treeview_contenttype = "Track"
+
     def __init__(self, application: Application, master: tk.Tk = None):
         super().__init__(master)
         self.application = application
@@ -35,15 +38,16 @@ class Mainwindow(pygubu.TkApplication):
         self.__downloadcountlabel = builder.get_variable('downloadcountlabel')          # type: tk.StringVar
         self.__searchentry = builder.get_variable('searchentry')                        # type: tk.StringVar
 
-        sortcallbacks = {'sort_title' : lambda: self.application.sort('title'),
+        callbacks = {'sort_title' : lambda: self.application.sort('title'),
                          'sort_artist': lambda: self.application.sort('artist'),
                          'sort_album': lambda: self.application.sort('album'),
                          'sort_saved': lambda: self.application.sort('saved'),
                          'search_gmusic': lambda: self.application.search_gmusic(self.__searchentry.get()),
-                         'search_entry_enter_pressed': lambda b: self.application.search_gmusic(self.__searchentry.get())}
+                         'search_entry_enter_pressed': lambda b: self.application.search_gmusic(self.__searchentry.get()),
+                         'open_playlists': lambda: self.application.open_playlists()}
 
         builder.connect_callbacks(self)
-        builder.connect_callbacks(sortcallbacks)
+        builder.connect_callbacks(callbacks)
 
     def view_downloads(self):
         messagebox.showinfo("Test", "Text")
@@ -58,11 +62,12 @@ class Mainwindow(pygubu.TkApplication):
         self.application.download_selection(selected_items)
 
     def insert_tracks(self, tracks):
+        self.configure_treeview_for_content("Track")
         for track in tracks:
-            self.__treeview.insert("", tk.END, track["id"], text="F",
+            self.__treeview.insert("", tk.END, track["id"], text="T",
                                values=(track["title"], track["artist"], track["album"], track["saved"]))
 
-    def clear_tracks(self):
+    def empty_treeview(self):
         self.__treeview.delete(*self.__treeview.get_children())
 
     def track_download_complete(self, track: dict):
@@ -99,3 +104,26 @@ class Mainwindow(pygubu.TkApplication):
 
     def update_user_with_error(self, error: dict):
         messagebox.showerror(error["title"], error["body"])
+
+    def display_playlists(self, playlists: dict):
+        self.empty_treeview()
+        self.configure_treeview_for_content("Playlist")
+        for playlist in playlists:
+            if not 'type' in playlist or playlist['type'] == 'USER_GENERATED':
+                playlist['type'] = 'User'
+            self.__treeview.insert("", tk.END, playlist["id"], text="P", values=(playlist["name"], playlist["ownerName"], playlist['type']))
+
+    def configure_treeview_for_content(self, content_type):
+        if content_type is "Playlist":
+            self.__treeview.heading(column="artistcolumn", text="Playlist Owner")
+            self.__treeview.heading(column="albumcolumn", text="Playlist Type")
+        elif content_type is "Track":
+            self.__treeview.heading(column="artistcolumn", text="Artist")
+            self.__treeview.heading(column="albumcolumn", text="Album")
+        self.treeview_contenttype = content_type
+
+    def ontreeview_doubleclick(self, event):
+        item = self.__treeview.identify('item', event.x, event.y)
+        print('displaying playlist with iid ', item)
+        if self.treeview_contenttype is "Playlist":
+            self.application.display_playlist(item)
