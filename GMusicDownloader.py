@@ -92,12 +92,11 @@ class GMusicDownloader(threading.Thread):
                 for chunk in response.iter_content(chunk_size=self.chunk_size):
                     songfile.write(chunk)
                     dl += len(chunk)
-            self.add_tags(file_path, track)
             print(track_title, " done.")
             # next(filter(lambda t: t == track, self.filtered_library))
         else:
             print(track_title + " already exists, skipping")
-
+        self.add_tags(file_path, track)
         self.communicationqueue.put({"download complete": track})
 
     def search_library(self, searchterm: str):
@@ -110,7 +109,7 @@ class GMusicDownloader(threading.Thread):
         threading.Thread(target=self.__search_worker_thread, args= (searchstring,)).start()
 
     def __search_worker_thread(self, searchstring: str):
-        searchresults = self.api.search(searchstring)
+        searchresults = self.api.search(searchstring.encode("utf-8").decode("utf-8"))
         self.filtered_library = list(map(self.parse_song_hit, searchresults["song_hits"]))
         self.communicationqueue.put({"search results": True})
 
