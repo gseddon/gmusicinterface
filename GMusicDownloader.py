@@ -19,13 +19,15 @@ class GMusicDownloader(threading.Thread):
     api = None
     library = list()
     filtered_library = list()
+    download_workers = list()
     max_threads = None
     config_error = False
     loggedin = False
     playlists = None
     fetchedlists = None  # type: list
-    filecreationlock = None
-    trackqueue = None
+    filecreationlock = threading.Lock()
+    trackqueue = Queue()
+    threadqueue = Queue()
     player = None
     current_displayed_content_type = "Track"
 
@@ -38,6 +40,8 @@ class GMusicDownloader(threading.Thread):
         self.load_settings(config)
         if not self.config_error:
             self.threaded_api_query(self.login)
+        for i in range(self.max_threads):
+            self.threadqueue.put("I'm a thread")
 
     def login(self):
         if not self.loggedin:
@@ -68,8 +72,6 @@ class GMusicDownloader(threading.Thread):
             return os.path.join(self.get_directory_path(track), self.slugify(track["title"]) + self.file_type)
 
     def threaded_stream_downloads(self, tracklist: list):
-        self.trackqueue = Queue()
-        self.filecreationlock = threading.Lock()
         for i in range(self.max_threads):
             threading.Thread(target=self.__downloadworker).start()
         for track in tracklist:
@@ -80,11 +82,14 @@ class GMusicDownloader(threading.Thread):
 
     def __downloadworker(self):
         while True:
+            permission = self.threadqueue.get(block=True)
             track = self.trackqueue.get()
             if track is None:
+                self.threadqueue.put(permission)
                 break
             self.communicationqueue.put({"downloading": track})
             self.stream_download(track)
+            self.threadqueue.put(permission)
             self.trackqueue.task_done()
 
     def stream_download(self, track: dict):

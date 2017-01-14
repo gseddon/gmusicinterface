@@ -15,8 +15,8 @@ class Application:
     executor = None
     guiroot = None
     lastsort = {}
-    requested_downloads = None
-    complete_and_in_progress_downloads = None
+    requested_downloads = 0
+    complete_and_in_progress_downloads = 0
     gui_enabled = True
 
     def __init__(self):
@@ -64,8 +64,7 @@ class Application:
         return True #this is because we are hijacking the validate function for the text field to get called on every keypress.
 
     def download_selection(self, selected_items: tuple):
-        self.requested_downloads = len(selected_items)
-        self.complete_and_in_progress_downloads = 0
+        self.requested_downloads += len(selected_items)
         if self.gui_enabled:
             self.mainwindow.update_download_count(self.complete_and_in_progress_downloads, self.requested_downloads)
         download_tracks = list()
@@ -79,6 +78,8 @@ class Application:
         if self.gui_enabled:
             self.mainwindow.track_download_complete(track)
             if self.complete_and_in_progress_downloads == self.requested_downloads:
+                self.complete_and_in_progress_downloads = 0
+                self.requested_downloads = 0
                 self.mainwindow.update_download_count(complete=True)
 
     def login_complete(self, username: str):
