@@ -22,7 +22,7 @@ class GMusicDownloader(threading.Thread):
     configerror = False
     loggedin = False
     playlists = None
-    fetchedlists = None # type: list
+    fetchedlists = None  # type: list
 
     def __init__(self, queue: Queue):
         super().__init__()
@@ -41,10 +41,10 @@ class GMusicDownloader(threading.Thread):
             self.library = self.api.get_all_songs()
             print("songs fetched")
             self.communicationqueue.put({"login": self.username,
-                            "library": self.library})
+                                         "library": self.library})
             self.loggedin = True
 
-    def get_directory_path(self, track: dict, and_create = False):
+    def get_directory_path(self, track: dict, and_create=False):
         artist = self.slugify(track["artist"])
         album = self.slugify(track["album"])
         artist_path = os.path.join(self.music_directory, artist)
@@ -69,7 +69,7 @@ class GMusicDownloader(threading.Thread):
             threading.Thread(target=self.__downloadworker).start()
         for track in tracklist:
             self.trackqueue.put(track)
-        #stop threads when they're done
+        # stop threads when they're done
         for i in range(self.max_threads):
             self.trackqueue.put(None)
 
@@ -114,7 +114,7 @@ class GMusicDownloader(threading.Thread):
             self.filtered_library = list(filter(lambda t: searchterm in t["artist"], self.library))
 
     def threaded_api_query(self, worker: types.FunctionType, *args):
-        threading.Thread(target=worker, args= (*args,)).start()
+        threading.Thread(target=worker, args=(*args,)).start()
 
     def search_worker_thread(self, searchstring: str):
         searchresults = self.api.search(self.slugify(searchstring))
@@ -149,7 +149,7 @@ class GMusicDownloader(threading.Thread):
 
     def sort(self, sort: str, reversed: bool, contentType: str):
         if contentType == "Track":
-            self.filtered_library = sorted(self.filtered_library, key= lambda k: k[sort], reverse=reversed)
+            self.filtered_library = sorted(self.filtered_library, key=lambda k: k[sort], reverse=reversed)
         elif contentType == "Playlist":
             def lazy_hack_for_playlist_sort(playlist: dict):
                 if sort == "title":
@@ -158,7 +158,8 @@ class GMusicDownloader(threading.Thread):
                     return playlist["ownerName"]
                 if sort == "album":
                     return playlist['type']
-            self.playlists = sorted(self.playlists, key= lazy_hack_for_playlist_sort, reverse=reversed)
+
+            self.playlists = sorted(self.playlists, key=lazy_hack_for_playlist_sort, reverse=reversed)
 
     def load_settings(self, config: configparser.ConfigParser):
         try:
@@ -174,7 +175,8 @@ class GMusicDownloader(threading.Thread):
         except KeyError as e:
             self.communicationqueue.put({"ConfigError":
                                              {"title": "Configuration Error GMusicDownloader",
-                                              "body": "Could not find " +  e.args[0] + " in preferences, please update prefs and try again"}})
+                                              "body": "Could not find " + e.args[
+                                                  0] + " in preferences, please update prefs and try again"}})
             self.configerror = True
 
     def add_tags(self, filepath: str, track: dict):
@@ -202,11 +204,16 @@ class GMusicDownloader(threading.Thread):
         self.communicationqueue.put({"playlists loaded": self.playlists})
 
     def all_playlists(self, iid: str):
-        #TODO make this work for non user owned playlists. should use get_shared_playlist_contents for those.
-        self.fetchedlists = self.api.get_all_user_playlist_contents() #type: list
+        # TODO make this work for non user owned playlists. should use get_shared_playlist_contents for those.
+        if self.fetchedlists is None:
+            self.fetchedlists = self.api.get_all_user_playlist_contents()  # type: list
+            # noinspection PyTypeChecker
+            for fetchedplaylist in self.fetchedlists:
+                existing_playlist = next(filter(lambda p: p["id"] == fetchedplaylist["id"], self.playlists))
+                existing_playlist["tracks"] = fetchedplaylist["tracks"]
+
+        # noinspection PyTypeChecker
         for fetchedplaylist in self.fetchedlists:
-            existing_playlist = next(filter(lambda p: p["id"] == fetchedplaylist["id"], self.playlists))
-            existing_playlist["tracks"] = fetchedplaylist["tracks"]
             if fetchedplaylist["id"] == iid:
                 matchedplaylisttrackids = fetchedplaylist["tracks"]
                 self.filtered_library = self.songs_from_playlist(matchedplaylisttrackids)

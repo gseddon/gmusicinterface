@@ -123,7 +123,7 @@ class Mainwindow(pygubu.TkApplication):
 
     def ontreeview_doubleclick(self, event):
         item = self.__treeview.identify('item', event.x, event.y)
-        print('displaying playlist with iid ', item)
+        print('displaying playlist', item)
         if self.treeview_contenttype is "Playlist":
             self.application.display_playlist(item)
 

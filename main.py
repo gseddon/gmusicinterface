@@ -141,7 +141,7 @@ class Application:
             self.mainwindow.display_playlists(self.downloader.playlists)
 
     def display_playlist(self, iid: str):
-        self.mainwindow.working("Fetching Playlist")
+        self.mainwindow.working("Fetching All Playlist")
         self.downloader.threaded_api_query(self.downloader.all_playlists, iid)
 
 
