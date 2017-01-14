@@ -45,8 +45,8 @@ class Application:
                     self.update_user_with_downloading(msg["downloading"])
                 if "search results" in msg:
                     self.update_user_with_filtered_tracks()
-                if "ConfigError" in msg:
-                    self.update_user_with_error(msg["ConfigError"])
+                if "error" in msg:
+                    self.update_user_with_error(msg["error"])
                 if "playlists loaded" in msg:
                     self.display_playlists()
             except Empty:
@@ -114,6 +114,7 @@ class Application:
 
     def update_user_with_filtered_tracks(self):
         if self.gui_enabled:
+            self.downloader.current_displayed_content_type = "Track"
             self.downloader.check_filtered_tracks_for_download()
             self.mainwindow.working(remove=True)
             self.mainwindow.empty_treeview()

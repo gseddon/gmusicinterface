@@ -12,6 +12,7 @@ import mutagen
 import types
 
 from gmusicapi import Mobileclient
+from vlc import callbackmethod
 
 
 class GMusicDownloader(threading.Thread):
@@ -26,6 +27,7 @@ class GMusicDownloader(threading.Thread):
     filecreationlock = None
     trackqueue = None
     player = None
+    current_displayed_content_type = "Track"
 
     def __init__(self, queue: Queue):
         super().__init__()
@@ -175,7 +177,7 @@ class GMusicDownloader(threading.Thread):
             self.max_threads = settings.getint("download_threads", 5)
             self.config_error = False
         except KeyError as e:
-            self.communicationqueue.put({"ConfigError":
+            self.communicationqueue.put({"error":
                                              {"title": "Configuration Error GMusicDownloader",
                                               "body": "Could not find " + e.args[0]
                                                       + " in preferences, please update prefs and try again"}})
@@ -216,9 +218,9 @@ class GMusicDownloader(threading.Thread):
                      "type": "Automatic"}
         self.playlists.append(last_added)
 
-        thumbs_up = {"id": 'lastAdded',
+        thumbs_up = {"id": 'thumbsup',
                      "tracks": filter(lambda t: t['rating'] > 3, self.library),
-                     "name": "Last Added",
+                     "name": "Thumbs Up",
                      "ownerName": "System",
                      "type": "Automatic"}
         self.playlists.append(thumbs_up)
@@ -242,7 +244,11 @@ class GMusicDownloader(threading.Thread):
                 else:
                     self.filtered_library = self.songs_from_playlist(playlist_tracks)
                 self.communicationqueue.put({"search results": True})
-
+                return
+        self.current_displayed_content_type = "Playlist"
+        self.communicationqueue.put({"error":
+                                         {"title": "Could not fetch playlist",
+                                          "body": ":("}})
     def songs_from_playlist(self, playlist):
         tracks = list()
         for id_dict in playlist:
@@ -256,15 +262,33 @@ class GMusicDownloader(threading.Thread):
         return tracks
 
     def play_song(self, trackid):
-        import vlc
-        if trackid is None and self.player is not None:
-            self.player.pause()
-            return
-        url = self.api.get_stream_url(trackid)
-        if self.player is None:
-            self.player = vlc.MediaPlayer(url) # type: vlc.MediaPlayer
-        else:
-            self.player.release()
-            self.player = vlc.MediaPlayer(url)
-        self.player.play()
+        try:
+            import vlc
+            if isinstance(trackid, dict):
+                print('playing track', trackid['title'])
+                trackid = trackid["id"]
+            if trackid is None and self.player is not None:
+                self.player.pause()
+                return
+            url = self.api.get_stream_url(trackid)
+            if self.player is None:
+                self.player = vlc.MediaPlayer(url) # type: vlc.MediaPlayer
+            else:
+                # TODO: this is terrible and I should fix it. Lucky it works!
+                self.player = vlc.MediaPlayer(url)
+            self.player.play()
+            self.player.event_manager().event_attach(vlc.EventType.MediaPlayerEndReached, self.song_complete, trackid)
+        except ImportError:
+            self.communicationqueue.put({"error":
+                                             {"title": "Could not import VLC",
+                                              "body": "Please make sure you have 64-bit VLC installed"}})
+
+    @callbackmethod
+    def song_complete(self, event, trackId):
+        if self.current_displayed_content_type == "Track":
+            libiterator = iter(self.filtered_library)
+            for track in libiterator:
+                if track["id"] == trackId:
+                    self.play_song(next(libiterator, None))
+                    return
 
