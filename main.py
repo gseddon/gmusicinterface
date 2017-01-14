@@ -2,7 +2,6 @@ import configparser
 from queue import Queue
 from queue import Empty
 import tkinter as tk
-from tkinter import messagebox
 from GMusicDownloader import GMusicDownloader
 from mainwindow import *
 

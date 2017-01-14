@@ -4,7 +4,7 @@ from tkinter import messagebox
 from tkinter import Event
 from pygubu.builder.widgets import pathchooserinput
 import configparser
-
+import platform
 from main import Application
 
 
@@ -32,6 +32,10 @@ class Preferences():
         self.config = configparser.ConfigParser()
         self.config.read("config.ini")
         self.load_settings(self.config)
+
+        if platform.system() == "Windows":
+            self.master.attributes('-topmost', True)
+
 
     def load_settings(self, config: configparser.ConfigParser):
         try:
