@@ -19,10 +19,13 @@ class GMusicDownloader(threading.Thread):
     library = list()
     filtered_library = list()
     max_threads = None
-    configerror = False
+    config_error = False
     loggedin = False
     playlists = None
     fetchedlists = None  # type: list
+    filecreationlock = None
+    trackqueue = None
+    player = None
 
     def __init__(self, queue: Queue):
         super().__init__()
@@ -31,7 +34,7 @@ class GMusicDownloader(threading.Thread):
         config = configparser.ConfigParser()
         config.read("config.ini")
         self.load_settings(config)
-        if not self.configerror:
+        if not self.config_error:
             self.threaded_api_query(self.login)
 
     def login(self):
@@ -95,7 +98,7 @@ class GMusicDownloader(threading.Thread):
             dl = 0
             track_url = self.api.get_stream_url(track['id'])
             response = requests.get(track_url, stream=True)
-            total_length = int(response.headers.get('content-length'))
+            # total_length = int(response.headers.get('content-length'))
             with open(file_path, "wb") as songfile:
                 for chunk in response.iter_content(chunk_size=self.chunk_size):
                     songfile.write(chunk)
@@ -107,28 +110,27 @@ class GMusicDownloader(threading.Thread):
         self.add_tags(file_path, track)
         self.communicationqueue.put({"download complete": track})
 
-    def search_library(self, searchterm: str):
-        if searchterm == "*":
+    def search_library(self, search_term: str):
+        if search_term == "*":
             self.filtered_library = self.library
         else:
-            self.filtered_library = list(filter(lambda t: searchterm in t["artist"], self.library))
+            self.filtered_library = list(filter(lambda t: search_term in t["artist"], self.library))
 
-    def threaded_api_query(self, worker: types.FunctionType, *args):
+    @staticmethod
+    def threaded_api_query(worker: types.FunctionType, *args):
         threading.Thread(target=worker, args=(*args,)).start()
 
     def search_worker_thread(self, searchstring: str):
-        searchresults = self.api.search(self.slugify(searchstring))
-        self.filtered_library = list(map(self.parse_song_hit, searchresults["song_hits"]))
-        self.communicationqueue.put({"search results": True})
+        search_results = self.api.search(self.slugify(searchstring))
 
-    @staticmethod
-    def parse_song_hit(song_hit):
-        """
-        couldn't fit it into a lambda :'(
-        """
-        track = song_hit["track"]
-        track["id"] = track["storeId"]
-        return track
+        def parse_song_hit(song_hit):
+            # couldn't fit it into a lambda :'(
+            track = song_hit["track"]
+            track["id"] = track["storeId"]
+            return track
+
+        self.filtered_library = list(map(parse_song_hit, search_results["song_hits"]))
+        self.communicationqueue.put({"search results": True})
 
     @staticmethod
     def slugify(value):
@@ -147,10 +149,10 @@ class GMusicDownloader(threading.Thread):
                 else:
                     track["saved"] = ""
 
-    def sort(self, sort: str, reversed: bool, contentType: str):
-        if contentType == "Track":
-            self.filtered_library = sorted(self.filtered_library, key=lambda k: k[sort], reverse=reversed)
-        elif contentType == "Playlist":
+    def sort(self, sort: str, is_reversed: bool, content_type: str):
+        if content_type == "Track":
+            self.filtered_library = sorted(self.filtered_library, key=lambda k: k[sort], reverse=is_reversed)
+        elif content_type == "Playlist":
             def lazy_hack_for_playlist_sort(playlist: dict):
                 if sort == "title":
                     return playlist["name"]
@@ -159,7 +161,7 @@ class GMusicDownloader(threading.Thread):
                 if sort == "album":
                     return playlist['type']
 
-            self.playlists = sorted(self.playlists, key=lazy_hack_for_playlist_sort, reverse=reversed)
+            self.playlists = sorted(self.playlists, key=lazy_hack_for_playlist_sort, reverse=is_reversed)
 
     def load_settings(self, config: configparser.ConfigParser):
         try:
@@ -171,13 +173,13 @@ class GMusicDownloader(threading.Thread):
             self.file_type = "." + settings["file_type"]
             self.chunk_size = settings.getint("chunk_size")
             self.max_threads = settings.getint("download_threads", 5)
-            self.configerror = False
+            self.config_error = False
         except KeyError as e:
             self.communicationqueue.put({"ConfigError":
                                              {"title": "Configuration Error GMusicDownloader",
-                                              "body": "Could not find " + e.args[
-                                                  0] + " in preferences, please update prefs and try again"}})
-            self.configerror = True
+                                              "body": "Could not find " + e.args[0]
+                                                      + " in preferences, please update prefs and try again"}})
+            self.config_error = True
 
     def add_tags(self, filepath: str, track: dict):
         try:
@@ -194,29 +196,51 @@ class GMusicDownloader(threading.Thread):
         tags["genre"] = track["genre"]
         tags["composer"] = track["composer"]
         tags["albumartist"] = track["albumArtist"]
-        if "beatsPerMinute" in track:
-            tags["bpm"] = track["beatsPerMinute"]
+        if "beatsPerMinute" in track and not track["beatsPerMinute"] == 0:
+            tags["bpm"] = str(track["beatsPerMinute"]).encode("utf-8").decode("utf-8")
+        # TODO store Year. will have to use standard ID3 instead of easy
         tags.save(v2_version=3)
 
     def open_playlists(self):
         if self.playlists is None:
             self.playlists = self.api.get_all_playlists()
+        if not "lastAdded" in map(lambda p: p["id"], self.playlists):
+            self.add_automatic_playlists()
         self.communicationqueue.put({"playlists loaded": self.playlists})
 
-    def all_playlists(self, iid: str):
+    def add_automatic_playlists(self):
+        last_added = {"id": 'lastAdded',
+                     "tracks": sorted(self.library, key=lambda t: t['creationTimestamp'], reverse=True),
+                     "name": "Last Added",
+                     "ownerName": "System",
+                     "type": "Automatic"}
+        self.playlists.append(last_added)
+
+        thumbs_up = {"id": 'lastAdded',
+                     "tracks": filter(lambda t: t['rating'] > 3, self.library),
+                     "name": "Last Added",
+                     "ownerName": "System",
+                     "type": "Automatic"}
+        self.playlists.append(thumbs_up)
+
+
+    def fetch_all_playlists_and_return_one_with_iid(self, iid: str):
         # TODO make this work for non user owned playlists. should use get_shared_playlist_contents for those.
         if self.fetchedlists is None:
             self.fetchedlists = self.api.get_all_user_playlist_contents()  # type: list
             # noinspection PyTypeChecker
-            for fetchedplaylist in self.fetchedlists:
-                existing_playlist = next(filter(lambda p: p["id"] == fetchedplaylist["id"], self.playlists))
-                existing_playlist["tracks"] = fetchedplaylist["tracks"]
+            for playlist in self.fetchedlists:
+                existing_playlist = next(filter(lambda p: p["id"] == playlist["id"], self.playlists))
+                existing_playlist["tracks"] = playlist["tracks"]
 
         # noinspection PyTypeChecker
-        for fetchedplaylist in self.fetchedlists:
-            if fetchedplaylist["id"] == iid:
-                matchedplaylisttrackids = fetchedplaylist["tracks"]
-                self.filtered_library = self.songs_from_playlist(matchedplaylisttrackids)
+        for playlist in self.playlists:
+            if playlist["id"] == iid:
+                playlist_tracks = playlist["tracks"]
+                if playlist["type"] == "Automatic":
+                    self.filtered_library = playlist_tracks
+                else:
+                    self.filtered_library = self.songs_from_playlist(playlist_tracks)
                 self.communicationqueue.put({"search results": True})
 
     def songs_from_playlist(self, playlist):
@@ -229,5 +253,18 @@ class GMusicDownloader(threading.Thread):
             if "id" not in track:
                 track["id"] = track["storeId"]
             tracks.append(track)
-
         return tracks
+
+    def play_song(self, trackid):
+        import vlc
+        if trackid is None and self.player is not None:
+            self.player.pause()
+            return
+        url = self.api.get_stream_url(trackid)
+        if self.player is None:
+            self.player = vlc.MediaPlayer(url) # type: vlc.MediaPlayer
+        else:
+            self.player.release()
+            self.player = vlc.MediaPlayer(url)
+        self.player.play()
+

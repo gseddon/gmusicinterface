@@ -142,7 +142,19 @@ class Application:
 
     def display_playlist(self, iid: str):
         self.mainwindow.working("Fetching All Playlist")
-        self.downloader.threaded_api_query(self.downloader.all_playlists, iid)
+        self.downloader.threaded_api_query(self.downloader.fetch_all_playlists_and_return_one_with_iid, iid)
+
+    def play_song(self, selectionids):
+        """
+        selectionids will be either a tuple of selected ids, in which case play the first one, or it will be None,
+         meaning we want nothing playing :D
+        :param selectionids:
+        :return:
+        """
+        if selectionids is not None and len(selectionids) > 0:
+            self.downloader.play_song(selectionids[0])
+        else:
+            self.downloader.play_song(None)
 
 
 if __name__ == "__main__":

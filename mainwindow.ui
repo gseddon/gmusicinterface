@@ -234,6 +234,30 @@
         </layout>
       </object>
     </child>
+    <child>
+      <object class="ttk.Button" id="play_button">
+        <property name="command">play_song</property>
+        <property name="text" translatable="yes">Play Song</property>
+        <layout>
+          <property name="column">0</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+          <property name="sticky">w</property>
+        </layout>
+      </object>
+    </child>
+    <child>
+      <object class="ttk.Button" id="pause_button">
+        <property name="command">pause_song</property>
+        <property name="text" translatable="yes">Pause Song</property>
+        <layout>
+          <property name="column">1</property>
+          <property name="propagate">True</property>
+          <property name="row">0</property>
+          <property name="sticky">w</property>
+        </layout>
+      </object>
+    </child>
   </object>
   <object class="tk.Menu" id="mainmenu">
     <child>

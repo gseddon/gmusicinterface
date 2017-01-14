@@ -10,7 +10,7 @@ from preferences import Preferences
 
 class Mainwindow(pygubu.TkApplication):
 
-    treeview_contenttype = "Track"
+    treeview_content_type = "Track"
     message = None
 
     def __init__(self, application: Application, master: tk.Tk = None):
@@ -39,17 +39,19 @@ class Mainwindow(pygubu.TkApplication):
         self.__downloadcountlabel = builder.get_variable('downloadcountlabel')          # type: tk.StringVar
         self.__searchentry = builder.get_variable('searchentry')                        # type: tk.StringVar
 
-        callbacks = {'sort_title' :         lambda: self.application.sort('title', self.treeview_contenttype),
-                         'sort_artist':     lambda: self.application.sort('artist', self.treeview_contenttype),
-                         'sort_album':      lambda: self.application.sort('album', self.treeview_contenttype),
-                         'sort_saved':      lambda: self.application.sort('saved', self.treeview_contenttype),
+        callbacks = {'sort_title' :         lambda: self.application.sort('title', self.treeview_content_type),
+                         'sort_artist':     lambda: self.application.sort('artist', self.treeview_content_type),
+                         'sort_album':      lambda: self.application.sort('album', self.treeview_content_type),
+                         'sort_saved':      lambda: self.application.sort('saved', self.treeview_content_type),
                          'search_gmusic':   lambda: self.application.search_gmusic(self.__searchentry.get()),
                          'search_entry_enter_pressed': lambda b: self.application.search_gmusic(self.__searchentry.get()),
                          'search_entry_changed': lambda a, v: self.application.got_search_query(v),
                          'open_playlists': lambda: self.application.open_playlists(),
                          'download_selection': lambda:  self.application.download_selection(self.__treeview.selection()),
                          'open_preferences' : lambda: self.open_preferences(),
-                         'ontreeview_doubleclick': lambda e: self.ontreeview_doubleclick(e)
+                         'ontreeview_doubleclick': lambda e: self.ontreeview_doubleclick(e),
+                         'play_song':       lambda: self.application.play_song(self.__treeview.selection()),
+                         'pause_song':      lambda: self.application.play_song(None)
                      }
 
         builder.connect_callbacks(callbacks)
@@ -119,12 +121,12 @@ class Mainwindow(pygubu.TkApplication):
         elif content_type is "Track":
             self.__treeview.heading(column="artistcolumn", text="Artist")
             self.__treeview.heading(column="albumcolumn", text="Album")
-        self.treeview_contenttype = content_type
+        self.treeview_content_type = content_type
 
     def ontreeview_doubleclick(self, event):
         item = self.__treeview.identify('item', event.x, event.y)
         print('displaying playlist', item)
-        if self.treeview_contenttype is "Playlist":
+        if self.treeview_content_type is "Playlist":
             self.application.display_playlist(item)
 
     def working(self, message="", remove=False):
