@@ -3,3 +3,4 @@ account.ini
 Music
 build
 __pycache__
+.env
